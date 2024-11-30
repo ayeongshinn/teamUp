@@ -1,0 +1,18 @@
+
+src/main/resources/application.properties
+src/main/resources/root-context.xml
+src/main/resources/security-context.xml
+
+*.iml
+.idea/
+*.classpath
+*.project
+.settings/
+/.metadata/
+/.recommenders/
+
+# 빌드 폴더
+/target/
+
+# OS 관련 파일
+.DS_Store
