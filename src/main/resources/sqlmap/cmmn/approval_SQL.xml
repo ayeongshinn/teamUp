@@ -1,0 +1,870 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cmmn.mapper.ApprovalMapper">
+
+	<resultMap type="approvalDocVO" id="approvalDocMap">
+		<result property="atrzNo" column="ATRZ_NO"/>
+		<result property="docNo" column="DOC_NO"/>
+		<result property="atrzSttusCd" column="ATRZ_STTUS_CD"/>
+		<result property="taskPrcsSttus" column="TASK_PRCS_STTUS"/>
+		<result property="atrzTtl" column="ATRZ_TTL"/>
+		<result property="drftYmd" column="DRFT_YMD"/>
+		<result property="drftEmpNo" column="DRFT_EMP_NO"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="htmlCd" column="HTML_CD" jdbcType="CLOB" javaType="java.lang.String"/>
+		<result property="drftDt" column="DRFT_DT"/>
+		<result property="docCdNm" column="DOC_CD_NM"/>
+		<result property="docCd" column="DOC_CD"/>
+		<result property="emrgncySttus" column="EMRGNCY_STTUS"/>
+		
+		<result property="atrzSttusNm" column="ATRZ_STTUS_NM"/>
+		<result property="docAtrzSttusNm" column="DOC_ATRZ_STTUS_NM"/>
+		<result property="docAtrzSttusCd" column="DOC_ATRZ_STTUS_CD"/>
+		
+		<result property="rn" column="RN"/>
+		
+		<result property="lastAtrzDt" column="LAST_ATRZ_DT"/>
+		
+		<association property="employeeVO" resultMap="employeeMap"></association>
+		<collection property="approvalLineVOList" resultMap="approvalLineMap"></collection> <!-- 결재선 -->
+	</resultMap>
+	
+	<resultMap type="approvalLineVO" id="approvalLineMap">
+		<result property="atrzSn" column="ATRZ_SN"/>
+		<result property="atrzNo" column="ATRZ_NO"/>
+		<result property="atrzEmpNo" column="ATRZ_EMP_NO"/>
+		<result property="atrzYmd" column="ATRZ_YMD"/>
+		<result property="rjctRsn" column="RJCT_RSN"/>
+		<result property="atrzSttusCd" column="ATRZ_STTUS_CD"/>
+		<result property="helpDeptCd" column="HELP_DEPT_CD"/>
+		<result property="atrzDt" column="ATRZ_DT"/>
+		
+		<result property="atrzSttusNm" column="ATRZ_STTUS_NM"/>
+		<result property="helpDeptNm" column="HELP_DEPT_NM"/>
+		
+		<result property="atrzOpinion" column="ATRZ_OPINION"/>
+		
+		<result property="rn" column="RN"/>
+		<result property="prevAtrzSttusCd" column="PREV_ATRZ_STTUS_CD"/>
+	</resultMap>
+	
+	<resultMap type="employeeVO" id="employeeMap">
+		<result property="offcsPhoto" column="OFFCS_PHOTO"/>
+		<result property="empNo" column="EMP_NO"/>
+		<result property="empPswd" column="EMP_PSWD"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empRrno" column="EMP_RRNO"/>
+		<result property="empBrdt" column="EMP_BRDT"/>
+		<result property="empTelno" column="EMP_TELNO"/>
+		<result property="empEmlAddr" column="EMP_EML_ADDR"/>
+		<result property="jncmpYmd" column="JNCMP_YMD"/>
+		<result property="rsgntnYmd" column="RSGNTN_YMD"/>
+		<result property="roadNmZip" column="ROAD_NM_ZIP"/>
+		<result property="roadNmAddr" column="ROAD_NM_ADDR"/>
+		<result property="daddr" column="DADDR"/>
+		<result property="empIntrcn" column="EMP_INTRCN"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="proflPhoto" column="PROFL_PHOTO"/>
+		<result property="jbgdCd" column="JBGD_CD"/>
+		<result property="jbttlCd" column="JBTTL_CD"/>
+		<result property="deptCd" column="DEPT_CD"/>
+		<result property="sexdstnCd" column="SEXDSTN_CD"/>
+		<result property="enabled" column="ENABLED"/>
+		
+		<result property="jbgdNm" column="JBGD_NM"/>
+		<result property="jbttlNm" column="JBTTL_NM"/>
+		<result property="deptNm" column="DEPT_NM"/>
+		
+	</resultMap>
+	
+	<select id="getApprovalList" parameterType="String" resultMap="approvalDocMap">
+		SELECT A.ATRZ_SN
+		     , A.ATRZ_NO
+		     , A.ATRZ_EMP_NO
+		     , A.ATRZ_YMD
+		     , A.RJCT_RSN
+		     , A.ATRZ_STTUS_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = A.ATRZ_STTUS_CD) AS ATRZ_STTUS_NM
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = A.HELP_DEPT_CD) AS HELP_DEPT_NM
+		     , A.ATRZ_DT
+		     , B.DOC_NO
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = B.ATRZ_STTUS_CD) AS DOC_ATRZ_STTUS_NM
+		     , B.TASK_PRCS_STTUS
+		     , B.ATRZ_TTL
+		     , B.DRFT_YMD
+		     , B.DRFT_EMP_NO
+		     , B.FILE_GROUP_NO
+		     , B.DRFT_DT
+		     , B.DOC_CD_NM
+		     , B.DOC_CD
+		     , B.EMRGNCY_STTUS
+		     , C.EMP_NO
+             , C.EMP_NM
+             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.JBGD_CD) AS JBGD_NM
+             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.JBTTL_CD) AS JBTTL_NM
+             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.DEPT_CD) AS DEPT_NM
+		FROM APPROVAL_LINE A
+		LEFT JOIN APPROVAL_DOC B ON A.ATRZ_NO = B.ATRZ_NO
+        LEFT JOIN EMPLOYEE C ON B.DRFT_EMP_NO = C.EMP_NO
+		WHERE A.ATRZ_EMP_NO = #{empNo}
+		ORDER BY 
+            CASE WHEN B.EMRGNCY_STTUS = 'Y' THEN 0 ELSE 1 END, B.DRFT_DT ASC
+	</select>
+	
+	<select id="getApprovalDoc" parameterType="String" resultType="approvalDocVO">
+		SELECT ATRZ_NO
+		     , DOC_NO
+		     , ATRZ_STTUS_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = ATRZ_STTUS_CD) AS ATRZ_STTUS_NM
+		     , TASK_PRCS_STTUS
+		     , ATRZ_TTL
+		     , DRFT_YMD
+		     , DRFT_EMP_NO
+		     , FILE_GROUP_NO
+		     , HTML_CD
+		     , DRFT_DT
+		     , DOC_CD_NM
+		     , DOC_CD
+		     , EMRGNCY_STTUS
+		FROM APPROVAL_DOC
+		WHERE DOC_NO = #{docNo}
+	</select>
+	
+	<select id="getEmpInfo" parameterType="String" resultType="employeeVO">
+		SELECT EMP_NO
+		     , EMP_NM
+		     , PROFL_PHOTO
+		     , OFFCS_PHOTO
+		     , JBGD_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBGD_CD) AS JBGD_NM
+		     , JBTTL_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBTTL_CD) AS JBTTL_NM
+		     , DEPT_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DEPT_CD) AS DEPT_NM
+		     , SEXDSTN_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = SEXDSTN_CD) AS SEXDSTN_NM
+		FROM EMPLOYEE
+		WHERE EMP_NO = #{empNo}
+	</select>
+	
+	<select id="getApprovalLine" parameterType="String" resultType="approvalLineVO">
+		SELECT ATRZ_SN
+		     , ATRZ_NO
+		     , ATRZ_EMP_NO
+		     , ATRZ_YMD
+		     , RJCT_RSN
+		     , ATRZ_STTUS_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = ATRZ_STTUS_CD) AS ATRZ_STTUS_NM
+		     , HELP_DEPT_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = HELP_DEPT_CD) AS HELP_DEPT_NM
+		     , ATRZ_DT
+		     , ATRZ_OPINION
+		FROM APPROVAL_LINE
+		WHERE ATRZ_NO = #{atrzNo}
+		ORDER BY ATRZ_SN
+	</select>
+	
+	<update id="updateApproveDoc" parameterType="String">
+		UPDATE APPROVAL_DOC
+		SET ATRZ_STTUS_CD = 'A14-001'
+		  , LAST_ATRZ_DT = SYSDATE
+		WHERE ATRZ_NO = #{atrzNo}
+	</update>
+	
+	<update id="updateApproveLine" parameterType="approvalLineVO">
+		UPDATE APPROVAL_LINE
+		SET ATRZ_STTUS_CD = 'A14-001'
+		  , ATRZ_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		  , ATRZ_DT = SYSDATE
+		  , ATRZ_OPINION = #{atrzOpinion}
+		WHERE ATRZ_NO = #{atrzNo}
+		AND ATRZ_EMP_NO = #{atrzEmpNo}
+	</update>
+	
+	<update id="updateReturnDoc" parameterType="String">
+		UPDATE APPROVAL_DOC
+		SET ATRZ_STTUS_CD = 'A14-002'
+		  , LAST_ATRZ_DT = SYSDATE
+		WHERE ATRZ_NO = #{atrzNo}
+	</update>
+	
+	<update id="updateReturnLine" parameterType="approvalLineVO">
+		UPDATE APPROVAL_LINE
+		SET ATRZ_STTUS_CD = 'A14-002'
+		  , ATRZ_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		  , ATRZ_DT = SYSDATE
+		  , RJCT_RSN = #{rjctRsn}
+		WHERE ATRZ_NO = #{atrzNo}
+		AND ATRZ_EMP_NO = #{atrzEmpNo}
+	</update>
+	
+	<select id="getHrMovementDoc" parameterType="hrMovementDocVO" resultType="hrMovementDocVO">
+		SELECT DOC_NO
+		     , DOC_TTL
+		     , DOC_CN
+		     , WRT_YMD
+		     , TRGT_EMP_NO
+		     , DEPT_CD
+		     , JBGD_CD
+		     , TRGT_EMP_DAY
+		     , HTML_CD
+		     , DOC_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DOC_CD) AS DOC_CD_NM
+		     , DRFT_EMP_NO
+		FROM HR_MOVEMENT_DOC
+		WHERE DOC_NO = #{docNo}
+		AND DRFT_EMP_NO = #{drftEmpNo}
+	</select>
+	
+	<select id="getVacationDoc" parameterType="vacationDocVO" resultType="vacationDocVO">
+		SELECT DOC_NO
+			 , VCATN_CD
+			 , DOC_TTL
+			 , WRT_YMD
+			 , VCATN_RSN
+			 , USE_VCATN_DAY_CNT
+			 , SCHDL_BGNG_YMD
+			 , SCHDL_END_YMD
+			 , HTML_CD
+			 , DOC_CD
+			 , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DOC_CD) AS DOC_CD_NM
+			 , DRFT_EMP_NO
+		FROM VACATION_DOC
+		WHERE DOC_NO = #{docNo}
+		AND DRFT_EMP_NO = #{drftEmpNo}
+	</select>
+	
+	<select id="getResignationDoc" parameterType="resignationDocVO" resultType="resignationDocVO">
+		SELECT DOC_NO
+			 , DOC_TTL
+			 , RSGNTN_RSN
+			 , RSGNTN_YMD
+			 , WRT_YMD
+			 , HTML_CD
+			 , DOC_CD
+			 , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DOC_CD) AS DOC_CD_NM
+			 , DRFT_EMP_NO
+		FROM RESIGNATION_DOC
+		WHERE DOC_NO = #{docNo}
+		AND DRFT_EMP_NO = #{drftEmpNo}
+	</select>
+	
+	<select id="getSalaryDoc" parameterType="salaryDocVO" resultType="salaryDocVO">
+		SELECT DOC_NO
+			 , DOC_TTL
+			 , DOC_CN
+			 , WRT_YMD
+			 , ANSLRY_AMT
+			 , TRGT_EMP_NO
+			 , HTML_CD
+			 , DOC_CD
+			 , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DOC_CD) AS DOC_CD_NM
+			 , DRFT_EMP_NO
+		FROM SALARY_DOC
+		WHERE DOC_NO = #{docNo}
+		AND DRFT_EMP_NO = #{drftEmpNo}
+	</select>
+	
+	<select id="getSalaryDetailsDoc" parameterType="salaryDetailsDocVO" resultType="salaryDetailsDocVO">
+		SELECT DOC_NO
+			 , DOC_TTL
+			 , DOC_CN
+			 , TRGT_EMP_NO
+			 , BONUS
+			 , BNS_RT
+			 , TRNSPORT_CT
+			 , MEAL_CT
+			 , TOT_GIVE_AMT
+			 , NPN, HLTHINS_IRNCF
+			 , EMPLYMINSRNC_IRNCF
+			 , IACI_IRNCF
+			 , ECMT
+			 , LLX
+			 , TOT_DDC_AMT
+			 , REAL_RECPT_AMT
+			 , HTML_CD
+			 , DOC_CD
+			 , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DOC_CD) AS DOC_CD_NM
+			 , DRFT_EMP_NO
+		FROM SALARY_DETAILS_DOC
+		WHERE DOC_NO = #{docNo}
+		AND DRFT_EMP_NO = #{drftEmpNo}
+	</select>
+	
+	<select id="getFixturesUseDoc" parameterType="fixturesUseDocVO" resultType="fixturesUseDocVO">
+		SELECT DOC_NO
+			 , DOC_TTL
+			 , FXTRS_NM
+			 , WRT_YMD
+			 , FXTRS_QY
+			 , USE_PRPS
+			 , USE_BGNG_YMD
+			 , USE_END_YMD
+			 , HTML_CD
+			 , DOC_CD
+			 , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DOC_CD) AS DOC_CD_NM
+			 , DRFT_EMP_NO
+		FROM FIXTURES_USE_DOC
+		WHERE DOC_NO = #{docNo}
+		AND DRFT_EMP_NO = #{drftEmpNo}
+	</select>
+	
+	<select id="getCarUseDoc" parameterType="carUseDocVO" resultType="carUseDocVO">
+		SELECT DOC_NO
+			 , DOC_TTL
+			 , WRT_YMD
+			 , USE_PRPS
+			 , USE_BGNG_YMD
+			 , USE_END_YMD
+			 , HTML_CD
+			 , DOC_CD
+			 , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DOC_CD) AS DOC_CD_NM
+			 , DRFT_EMP_NO
+		FROM CAR_USE_DOC
+		WHERE DOC_NO = #{docNo}
+		AND DRFT_EMP_NO = #{drftEmpNo}
+	</select>
+	
+	<select id="getEmpList" resultType="employeeVO">
+		SELECT EMP_NO
+		     , EMP_NM
+		     , EMP_INTRCN
+		     , PROFL_PHOTO
+		     , OFFCS_PHOTO
+		     , JBGD_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBGD_CD) AS JBGD_NM
+		     , JBTTL_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBTTL_CD) AS JBTTL_NM
+		     , DEPT_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DEPT_CD) AS DEPT_NM
+		     , SEXDSTN_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = SEXDSTN_CD) AS SEXDSTN_NM
+		FROM EMPLOYEE
+		ORDER BY EMP_NM
+	</select>
+	
+	<select id="getSearch" parameterType="String" resultType="employeeVO">
+		SELECT EMP_NO
+		     , EMP_NM
+		     , PROFL_PHOTO
+		     , OFFCS_PHOTO
+		     , JBGD_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBGD_CD) AS JBGD_NM
+		     , JBTTL_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBTTL_CD) AS JBTTL_NM
+		     , DEPT_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DEPT_CD) AS DEPT_NM
+		     , SEXDSTN_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = SEXDSTN_CD) AS SEXDSTN_NM
+		FROM EMPLOYEE
+		WHERE EMP_NM LIKE '%' || #{empNm} || '%'
+		ORDER BY EMP_NM
+	</select>
+	
+	<insert id="insertApprovalDoc" parameterType="approvalDocVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="atrzNo">
+			SELECT 'APPR' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(ATRZ_NO,5))) + 1), 5, '0')
+			FROM APPROVAL_DOC
+			GROUP BY SUBSTR(ATRZ_NO, 1, 4)
+		</selectKey>
+		INSERT INTO APPROVAL_DOC(
+			   ATRZ_NO
+			 , DOC_NO
+			 , ATRZ_STTUS_CD
+			 , ATRZ_TTL
+			 , DRFT_YMD
+			 , DRFT_EMP_NO
+			 , DRFT_DT
+			 , HTML_CD
+			 , DOC_CD_NM
+			 , DOC_CD
+			 , EMRGNCY_STTUS
+		)
+		VALUES (
+			   #{atrzNo}
+			 , #{docNo}
+			 , 'A14-003'
+			 , #{atrzTtl}
+			 , TO_CHAR((SYSDATE),'YYYYMMDD')
+			 , #{drftEmpNo}
+			 , SYSDATE
+			 , #{htmlCd}
+			 , #{docCdNm}
+			 , #{docCd}
+			 , #{emrgncySttus}
+		)
+	</insert>
+	
+	<insert id="insertApprovalLine" parameterType="approvalLineVO">
+		<selectKey resultType="int" order="BEFORE" keyProperty="atrzSn">
+			SELECT TO_NUMBER(MAX(ATRZ_SN) +1)
+			FROM APPROVAL_LINE
+		</selectKey>
+		INSERT INTO APPROVAL_LINE(
+			   ATRZ_SN
+			 , ATRZ_NO
+			 , ATRZ_EMP_NO
+			 , ATRZ_STTUS_CD
+		)
+		VALUES (
+			   #{atrzSn}
+			 , #{atrzNo}
+			 , #{atrzEmpNo}
+			 , 'A14-003'
+		)
+	</insert>
+	
+	<select id="getFormList" resultType="documentFormVO">
+		SELECT FORM_NO
+			 , DOC_NM
+			 , DOC_CN
+		FROM DOCUMENT_FORM
+	</select>
+	
+	<select id="getDeptCd" resultType="commonCodeVO">
+		SELECT CLSF_CD, CLSF_NM, OUTPT_SN, GROUP_CD
+		FROM COMMON_CODE
+		WHERE GROUP_CD = 'A17'
+		ORDER BY OUTPT_SN
+	</select>
+	
+	<select id="getJbgdCd" resultType="commonCodeVO">
+		SELECT CLSF_CD, CLSF_NM, OUTPT_SN, GROUP_CD
+		FROM COMMON_CODE
+		WHERE GROUP_CD = 'A18'
+		ORDER BY OUTPT_SN
+	</select>
+	
+	<insert id="insertHrMovementDoc" parameterType="hrMovementDocVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="docNo">
+			SELECT 'HRMVE' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(DOC_NO,6))) + 1), 5, '0')
+			FROM HR_MOVEMENT_DOC
+			GROUP BY SUBSTR(DOC_NO, 1, 4)
+		</selectKey>
+		INSERT INTO HR_MOVEMENT_DOC(
+			   DOC_NO
+			 , DOC_TTL
+			 , DOC_CN
+			 , WRT_YMD
+			 , TRGT_EMP_NO
+			 , DEPT_CD
+			 , JBGD_CD
+			 , TRGT_EMP_DAY
+			 , HTML_CD
+			 , DOC_CD
+			 , DRFT_EMP_NO
+		)
+		VALUES (
+			   #{docNo}
+			 , #{docTtl}
+			 , #{docCn}
+			 , #{wrtYmd}
+			 , #{trgtEmpNo}
+			 , #{deptCd}
+			 , #{jbgdCd}
+			 , #{trgtEmpDay}
+			 , #{htmlCd}
+			 , #{docCd}
+			 , #{drftEmpNo}
+		)
+	</insert>
+	
+	<insert id="insertVacationDoc" parameterType="vacationDocVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="docNo">
+			SELECT 'VCATN' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(DOC_NO,6))) + 1), 5, '0')
+			FROM VACATION_DOC
+			GROUP BY SUBSTR(DOC_NO, 1, 4)
+		</selectKey>
+		INSERT INTO VACATION_DOC(
+			   DOC_NO
+	         , VCATN_CD
+	         , DOC_TTL
+	         , WRT_YMD
+	         , VCATN_RSN
+	         , USE_VCATN_DAY_CNT
+	         , SCHDL_BGNG_YMD
+	         , SCHDL_END_YMD
+	         , HTML_CD
+	         , DOC_CD
+	         , DRFT_EMP_NO
+		)
+		VALUES (
+			   #{docNo}
+			 , #{vcatnCd}
+			 , #{docTtl}
+			 , #{wrtYmd}
+			 , #{vcatnRsn}
+			 , #{useVcatnDayCnt}
+			 , #{schdlBgngYmd}
+			 , #{schdlEndYmd}
+			 , #{htmlCd}
+			 , #{docCd}
+			 , #{drftEmpNo}
+		)
+	</insert>
+	
+	<select id="getHrMovementDocMaxNum" resultType="String">
+		SELECT MAX(DOC_NO)
+		FROM HR_MOVEMENT_DOC
+	</select>
+	
+	<select id="getVacationDocMaxNum" resultType="String">
+		SELECT MAX(DOC_NO)
+		FROM VACATION_DOC
+	</select>
+	
+	<select id="getApprovalDocMaxNum" resultType="String">
+		SELECT MAX(ATRZ_NO)
+		FROM APPROVAL_DOC
+	</select>
+	
+	<select id="getApprovalCount" parameterType="hashMap" resultType="int">
+		SELECT COUNT(DISTINCT(A.ATRZ_SN))
+		FROM (
+		    SELECT A.ATRZ_SN
+		         , A.ATRZ_NO
+		         , A.ATRZ_EMP_NO
+		         , A.ATRZ_YMD
+		         , LAG(A.ATRZ_STTUS_CD, 1, 'A14-001') OVER (PARTITION BY A.ATRZ_NO ORDER BY A.ATRZ_SN) AS PREV_ATRZ_STTUS_CD
+		    FROM APPROVAL_LINE A
+		    LEFT JOIN APPROVAL_DOC B ON A.ATRZ_NO = B.ATRZ_NO
+		    LEFT JOIN EMPLOYEE C ON B.DRFT_EMP_NO = C.EMP_NO
+		    WHERE 1 = 1
+		<if test="searchField != null and searchField == 'writer' and keyword != null and keyword != ''">
+			AND C.EMP_NM LIKE '%' || #{keyword} || '%'
+		</if>
+		<if test="searchField != null and searchField == 'titleContent' and keyword != null and keyword != ''">
+			AND B.ATRZ_TTL LIKE '%' || #{keyword} || '%'
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND B.DRFT_YMD BETWEEN #{startDate} AND #{endDate}
+		</if>
+		<if test="emrgncySttus != null and emrgncySttus != ''">
+		    AND B.EMRGNCY_STTUS = #{emrgncySttus}
+		</if>
+	    ) A
+	    WHERE 1 = 1
+		AND A.ATRZ_EMP_NO = #{empNo}
+		AND A.ATRZ_YMD IS NULL
+		<if test="approveNow != null and approveNow != ''">
+	    	AND PREV_ATRZ_STTUS_CD = #{approveNow}
+	    </if>
+	</select>
+	
+	<select id="getApprovalRequestCount" parameterType="hashMap" resultType="int">
+		SELECT COUNT(DISTINCT(ATRZ_NO))
+		FROM (
+		    SELECT ATRZ_NO
+                 , DRFT_EMP_NO
+                 , DRFT_YMD
+                 , ATRZ_TTL
+                 , EMRGNCY_STTUS
+                 , ATRZ_STTUS_CD
+		    FROM APPROVAL_DOC A
+		    WHERE 1 = 1
+		    AND DRFT_EMP_NO = #{drftEmpNo}
+		<if test="searchField != null and searchField == 'titleContent' and keyword != null and keyword != ''">
+			AND ATRZ_TTL LIKE '%' || #{keyword} || '%'
+		</if>
+		<if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			AND DRFT_YMD BETWEEN #{startDate} AND #{endDate}
+		</if>
+		<if test="emrgncySttus != null and emrgncySttus != ''">
+		    AND EMRGNCY_STTUS = #{emrgncySttus}
+		</if>
+		<if test="atrzSttusCd != null and atrzSttusCd != ''">
+	        AND ATRZ_STTUS_CD = #{atrzSttusCd}
+        </if>
+	    ) A
+	</select>
+	
+	<select id="getApprovalListP" parameterType="hashMap" resultMap="approvalDocMap">
+		SELECT * 
+		FROM (
+		    SELECT 
+		        A.*,
+		        ROW_NUMBER() OVER (
+		            ORDER BY 
+		                CASE WHEN EMRGNCY_STTUS = 'Y' THEN 0 ELSE 1 END,
+		                DRFT_DT DESC
+		        ) AS RN
+		    FROM (
+		        SELECT *
+		        FROM (
+		        	SELECT A.ATRZ_SN
+		             	 , A.ATRZ_NO
+		             	 , A.ATRZ_EMP_NO
+			             , A.ATRZ_YMD
+			             , A.RJCT_RSN
+			             , A.ATRZ_STTUS_CD
+			             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = A.ATRZ_STTUS_CD) AS ATRZ_STTUS_NM
+			             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = A.HELP_DEPT_CD) AS HELP_DEPT_NM
+			             , A.ATRZ_DT
+			             , B.DOC_NO
+			             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = B.ATRZ_STTUS_CD) AS DOC_ATRZ_STTUS_NM
+			             , B.TASK_PRCS_STTUS
+			             , B.ATRZ_TTL
+			             , B.DRFT_YMD
+			             , B.DRFT_EMP_NO
+			             , B.FILE_GROUP_NO
+			             , B.DRFT_DT
+			             , B.DOC_CD_NM
+			             , B.DOC_CD
+			             , B.EMRGNCY_STTUS
+			             , C.EMP_NO
+			             , C.EMP_NM
+			             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.JBGD_CD) AS JBGD_NM
+			             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.JBTTL_CD) AS JBTTL_NM
+			             , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.DEPT_CD) AS DEPT_NM
+			             , LAG(A.ATRZ_STTUS_CD, 1, 'A14-001') OVER (PARTITION BY A.ATRZ_NO ORDER BY A.ATRZ_SN) AS PREV_ATRZ_STTUS_CD
+			        FROM APPROVAL_LINE A
+			        LEFT JOIN APPROVAL_DOC B ON A.ATRZ_NO = B.ATRZ_NO
+			        LEFT JOIN EMPLOYEE C ON B.DRFT_EMP_NO = C.EMP_NO
+			        WHERE 1 = 1
+			        <if test="searchField != null and searchField == 'writer' and keyword != null and keyword != ''">
+		                AND C.EMP_NM LIKE '%' || #{keyword} || '%'
+		            </if>
+			        <if test="emrgncySttus != null and emrgncySttus != ''">
+		                AND B.EMRGNCY_STTUS = #{emrgncySttus}
+		            </if>
+			        <if test="searchField != null and searchField == 'titleContent' and keyword != null and keyword != ''">
+		                AND B.ATRZ_TTL LIKE '%' || #{keyword} || '%'
+		            </if>
+			        <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+				        AND B.DRFT_YMD BETWEEN #{startDate} AND #{endDate}
+			        </if>
+			    )
+			    WHERE 1 = 1
+			    AND ATRZ_EMP_NO = #{empNo}
+			    AND ATRZ_STTUS_CD = 'A14-003'
+			    AND PREV_ATRZ_STTUS_CD != 'A14-002'
+			    <if test="approveNow != null and approveNow != ''">
+			    	AND PREV_ATRZ_STTUS_CD = #{approveNow}
+			    	AND ATRZ_YMD IS NULL
+			    </if>
+		    ) A
+		)
+		<if test="currentPage != null and currentPage > 0">
+			WHERE RN BETWEEN (#{currentPage} - 1) * 10 + 1 AND #{currentPage} * 10
+		</if>
+	</select>
+	
+	<select id="getApprovalLineCount" parameterType="String" resultType="approvalLineCountVO">
+		SELECT 
+		    COUNT(CASE WHEN PREV_ATRZ_STTUS_CD = 'A14-003' THEN 1 END) AS COUNT_WAIT,
+		    COUNT(CASE WHEN PREV_ATRZ_STTUS_CD = 'A14-001' THEN 1 END) AS COUNT_APPROVE,
+		    COUNT(CASE WHEN A.EMRGNCY_STTUS = 'Y' AND PREV_ATRZ_STTUS_CD != 'A14-002' THEN 1 END) AS COUNT_EMRGNCY_Y,
+		    COUNT(CASE WHEN A.EMRGNCY_STTUS = 'N' AND PREV_ATRZ_STTUS_CD != 'A14-002' THEN 1 END) AS COUNT_EMRGNCY_N
+		FROM (
+		    SELECT 
+		        ATRZ_SN,
+		        ATRZ_NO,
+		        ATRZ_EMP_NO,
+		        ATRZ_YMD,
+		        RJCT_RSN,
+		        ATRZ_STTUS_CD,
+		        HELP_DEPT_CD,
+		        ATRZ_DT,
+		        ATRZ_OPINION,
+		        LAG(ATRZ_STTUS_CD, 1, 'A14-001') OVER (PARTITION BY ATRZ_NO ORDER BY ATRZ_SN) AS PREV_ATRZ_STTUS_CD
+		    FROM APPROVAL_LINE
+		) SUBQUERY
+		JOIN APPROVAL_DOC A ON SUBQUERY.ATRZ_NO = A.ATRZ_NO
+		WHERE SUBQUERY.ATRZ_EMP_NO = #{empNo}
+		AND SUBQUERY.ATRZ_YMD IS NULL
+	</select>
+	
+	<select id="getApprovalRequestList" parameterType="hashMap" resultType="approvalDocVO">
+		SELECT * FROM (
+		    SELECT 
+		        A.*,
+		        ROW_NUMBER() OVER (
+		        	ORDER BY DRFT_DT DESC
+		        ) AS RN
+		    FROM (
+		        SELECT ATRZ_NO,
+		               DOC_NO,
+		               ATRZ_STTUS_CD,
+		               TASK_PRCS_STTUS,
+		               ATRZ_TTL,
+		               DRFT_YMD,
+		               DRFT_EMP_NO,
+		               FILE_GROUP_NO,
+		               DRFT_DT,
+		               DOC_CD_NM,
+		               EMRGNCY_STTUS,
+		               DOC_CD,
+		               LAST_ATRZ_DT
+		        FROM APPROVAL_DOC
+		        WHERE 1 = 1
+		        AND DRFT_EMP_NO = #{drftEmpNo}
+		        <if test="emrgncySttus != null and emrgncySttus != ''">
+	                AND EMRGNCY_STTUS = #{emrgncySttus}
+	            </if>
+		        <if test="searchField != null and searchField == 'titleContent' and keyword != null and keyword != ''">
+	                AND ATRZ_TTL LIKE '%' || #{keyword} || '%'
+	            </if>
+		        <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+			        AND DRFT_YMD BETWEEN #{startDate} AND #{endDate}
+		        </if>
+		        <if test="atrzSttusCd != null and atrzSttusCd != ''">
+			        AND ATRZ_STTUS_CD = #{atrzSttusCd}
+		        </if>
+		    ) A
+		)
+		<if test="currentPage != null and currentPage > 0">
+			WHERE RN BETWEEN (#{currentPage} - 1) * 10 + 1 AND #{currentPage} * 10
+		</if>
+	</select>
+	
+	<select id="getDsbApprovalRequestCount" parameterType="String" resultType="approvalLineCountVO">
+		SELECT COUNT(CASE WHEN ATRZ_STTUS_CD = 'A14-001' THEN 1 END) AS COUNT_APPROVE,
+			   COUNT(CASE WHEN ATRZ_STTUS_CD = 'A14-002' THEN 1 END) AS COUNT_RETURN,
+		       COUNT(CASE WHEN ATRZ_STTUS_CD = 'A14-003' THEN 1 END) AS COUNT_WAIT,
+			   COUNT(CASE WHEN EMRGNCY_STTUS = 'Y' THEN 1 END) AS COUNT_EMRGNCY_Y
+		FROM APPROVAL_DOC
+		WHERE DRFT_EMP_NO = #{drftEmpNo}
+	</select>
+	
+	<select id="getApprovalDocList" parameterType="hashMap" resultMap="approvalDocMap">
+		SELECT *
+		FROM (
+		    SELECT 
+		        ROW_NUMBER() OVER (ORDER BY A.ATRZ_DT DESC) AS RN,
+		        A.ATRZ_SN,
+		        A.ATRZ_NO,
+		        A.ATRZ_EMP_NO,
+		        A.ATRZ_YMD,
+		        A.RJCT_RSN,
+		        A.ATRZ_STTUS_CD,
+		        A.HELP_DEPT_CD,
+		        A.ATRZ_DT,
+		        A.ATRZ_OPINION,
+		        B.ATRZ_NO AS B_ATRZ_NO,
+		        B.DOC_NO,
+		        B.ATRZ_STTUS_CD AS B_ATRZ_STTUS_CD,
+		        B.TASK_PRCS_STTUS,
+		        B.ATRZ_TTL,
+		        B.DRFT_YMD,
+		        B.DRFT_EMP_NO,
+		        B.FILE_GROUP_NO,
+		        B.DRFT_DT,
+		        B.DOC_CD_NM,
+		        B.EMRGNCY_STTUS,
+		        B.DOC_CD,
+		        B.LAST_ATRZ_DT,
+		        C.EMP_NO,
+		        C.EMP_NM,
+		        (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.JBGD_CD) AS JBGD_NM,
+		        (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.JBTTL_CD) AS JBTTL_NM,
+		        (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = C.DEPT_CD) AS DEPT_NM
+		    FROM APPROVAL_LINE A
+		    LEFT JOIN APPROVAL_DOC B ON A.ATRZ_NO = B.ATRZ_NO
+		    LEFT JOIN EMPLOYEE C ON B.DRFT_EMP_NO = C.EMP_NO
+		    WHERE A.ATRZ_EMP_NO = #{atrzEmpNo}
+		    AND A.ATRZ_YMD IS NOT NULL
+		    <if test="searchField != null and searchField == 'titleContent' and keyword != null and keyword != ''">
+                AND B.ATRZ_TTL LIKE '%' || #{keyword} || '%'
+            </if>
+            <if test="searchField != null and searchField == 'writer' and keyword != null and keyword != ''">
+                AND C.EMP_NM LIKE '%' || #{keyword} || '%'
+            </if>
+	        <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+		        AND B.DRFT_YMD BETWEEN #{startDate} AND #{endDate}
+	        </if>
+	        <if test="atrzSttusCd != null and atrzSttusCd != ''">
+		        AND A.ATRZ_STTUS_CD = #{atrzSttusCd}
+	        </if>
+	        <if test="lastAtrzSttusCd != null and lastAtrzSttusCd != ''">
+		        AND B.ATRZ_STTUS_CD = #{lastAtrzSttusCd}
+	        </if>
+		) SUBQUERY
+		WHERE 1 = 1
+		<if test="currentPage != null and currentPage > 0">
+			AND RN BETWEEN (#{currentPage} - 1) * 10 + 1 AND #{currentPage} * 10
+		</if>
+		ORDER BY ATRZ_DT DESC
+	</select>
+	
+	<select id="getApprovalDocCount" parameterType="hashMap" resultType="int">
+		SELECT COUNT(DISTINCT(A.ATRZ_NO))
+		FROM (
+		    SELECT A.ATRZ_SN
+		         , A.ATRZ_NO
+		         , A.ATRZ_EMP_NO
+		         , A.ATRZ_YMD
+		         , A.RJCT_RSN
+		         , A.ATRZ_STTUS_CD
+		         , A.HELP_DEPT_CD
+		         , A.ATRZ_DT
+		         , A.ATRZ_OPINION
+		    FROM APPROVAL_LINE A
+		    LEFT JOIN APPROVAL_DOC B ON A.ATRZ_NO = B.ATRZ_NO
+		    LEFT JOIN EMPLOYEE C ON B.DRFT_EMP_NO = C.EMP_NO
+		    WHERE 1 = 1
+		    AND A.ATRZ_EMP_NO = #{atrzEmpNo}
+		    AND A.ATRZ_YMD IS NOT NULL
+		    <if test="searchField != null and searchField == 'writer' and keyword != null and keyword != ''">
+                AND C.EMP_NM LIKE '%' || #{keyword} || '%'
+            </if>
+	        <if test="searchField != null and searchField == 'titleContent' and keyword != null and keyword != ''">
+                AND B.ATRZ_TTL LIKE '%' || #{keyword} || '%'
+            </if>
+	        <if test="startDate != null and startDate != '' and endDate != null and endDate != ''">
+		        AND B.DRFT_YMD BETWEEN #{startDate} AND #{endDate}
+	        </if>
+	        <if test="atrzSttusCd != null and atrzSttusCd != ''">
+		        AND A.ATRZ_STTUS_CD = #{atrzSttusCd}
+	        </if>
+	        <if test="lastAtrzSttusCd != null and lastAtrzSttusCd != ''">
+		        AND B.ATRZ_STTUS_CD = #{lastAtrzSttusCd}
+	        </if>
+		)A
+	</select>
+	
+	<select id="getDsbApprocalDocCount" parameterType="String" resultType="approvalLineCountVO">
+		SELECT COUNT(CASE WHEN A.ATRZ_STTUS_CD = 'A14-001' THEN 1 END) AS COUNT_APPROVE
+			 , COUNT(CASE WHEN A.ATRZ_STTUS_CD = 'A14-002' THEN 1 END) AS COUNT_RETURN
+			 , COUNT(CASE WHEN B.ATRZ_STTUS_CD = 'A14-001' THEN 1 END) AS LAST_COUNT_APPROVE
+			 , COUNT(CASE WHEN B.ATRZ_STTUS_CD = 'A14-003' THEN 1 END) AS COUNT_WAIT
+		FROM APPROVAL_LINE A
+		LEFT JOIN APPROVAL_DOC B ON A.ATRZ_NO = B.ATRZ_NO
+		WHERE A.ATRZ_EMP_NO = #{atrzEmpNo}
+		AND A.ATRZ_YMD IS NOT NULL
+	</select>
+	
+	<select id="getDocumentForm" parameterType="String" resultType="documentFormVO">
+		SELECT FORM_NO
+		     , DOC_NM
+		     , DOC_CN
+		FROM DOCUMENT_FORM
+		WHERE FORM_NO = #{formNo}
+	</select>
+	
+	<select id="getHrMovementDocInfo" parameterType="String" resultType="hrMovementDocVO">
+		SELECT TRGT_EMP_NO
+		     , DEPT_CD
+		     , JBGD_CD
+		FROM HR_MOVEMENT_DOC
+		WHERE DOC_NO = #{docNo}
+	</select>
+	
+	<update id="updateEmpInfo" parameterType="employeeVO">
+		UPDATE EMPLOYEE
+		SET DEPT_CD = #{deptCd}
+		  , JBGD_CD = #{jbgdCd}
+		WHERE EMP_NO = #{empNo}
+	</update>
+	
+	<update id="updateWork" parameterType="String">
+		UPDATE APPROVAL_DOC
+		SET TASK_PRCS_STTUS = 'Y'
+		WHERE DOC_NO = #{docNo}
+	</update>
+	
+	<select id="getEmpNm" parameterType="String" resultType="String">
+		SELECT EMP_NM
+		FROM EMPLOYEE
+		WHERE EMP_NO = #{trgtEmpNo}
+	</select>
+</mapper>

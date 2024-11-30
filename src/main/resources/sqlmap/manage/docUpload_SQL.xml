@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.manage.mapper.DocUploadMapper">
+
+	<!-- 자료실 게시판 전체 리스트 조회  -->
+	<select id="list" resultType="boardVO" parameterType="hashMap">
+		SELECT T.*
+		FROM (
+		    SELECT ROW_NUMBER() OVER (ORDER BY REG_DT DESC) AS rnum
+		         , BBS_NO
+		         , BBS_TTL
+		         , EMP_NO
+		         , BBS_CN
+		         , REG_DT
+		         , INQ_CNT
+		         , DEL_YN
+		         , RCRIT_STTUS_CD
+		         , DELNG_STTUS_CD
+		         , BBS_CD
+		         , SUGEST_CLSF_CD
+		         , FILE_GROUP_NO
+		    FROM BOARD
+		    WHERE BBS_CD = 'A02-005'
+		    AND DEL_YN = 'N'
+		    <choose>
+    		<when test="searchField == 'titleContent'">
+				AND (BBS_TTL LIKE '%' || #{keyword} || '%' OR BBS_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND BBS_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND BBS_CN LIKE '%' || #{keyword} || '%'
+			</when>
+		    </choose>
+		    
+		    <if test="startDate != null and startDate != ''">
+               AND REG_DT &gt;= #{startDate} <!-- >= 연산 -->
+           </if>
+          
+            <if test="endDate != null and endDate != ''">
+               AND REG_DT &lt;= #{endDate} <!-- <= 연산 -->
+            </if>
+          
+		) T
+		WHERE T.rnum BETWEEN ((#{currentPage} * 10) - 9) AND (#{currentPage} * 10)
+		ORDER BY REG_DT DESC
+	</select>
+	
+	<!-- 자료실 게시판 전체 갯수  -->
+	<select id="getTotal" resultType="int">
+	    SELECT COUNT(*) FROM BOARD
+	    WHERE BBS_CD = 'A02-005'
+	    AND DEL_YN = 'N'
+	    
+    	<choose>
+    		<when test="searchField == 'titleContent'">
+				AND (BBS_TTL LIKE '%' || #{keyword} || '%' OR BBS_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND BBS_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND BBS_CN LIKE '%' || #{keyword} || '%'
+			</when>
+	    </choose>
+	    
+	    <if test="startDate != null and startDate != ''">
+              AND REG_DT &gt;= #{startDate} <!-- >= 연산 -->
+        </if>
+       
+        <if test="endDate != null and endDate != ''">
+           AND REG_DT &lt;= #{endDate} <!-- <= 연산 -->
+        </if>
+            
+	</select>
+	
+	<!-- 자료실 게시판 특정 게시물 상세 조회  -->
+	<select id="detail" resultType="boardVO">
+		SELECT  B.BBS_NO
+		      , B.BBS_TTL
+		      , B.BBS_CN
+		      , B.EMP_NO
+		      , E.EMP_NM
+		      , B.REG_DT
+		      , B.INQ_CNT
+		      , B.DEL_YN
+		      , B.RCRIT_STTUS_CD
+		      , B.DELNG_STTUS_CD
+		      , B.BBS_CD
+		      , B.SUGEST_CLSF_CD
+		      , B.FILE_GROUP_NO
+		      , F.FILE_SN
+		      , F.FILE_GROUP_NO
+		      , F.FILE_ORIGINAL_NM
+		      , F.FILE_SAVE_NM
+		      , F.FILE_SAVE_LOCATE
+		      , F.FILE_SIZE
+		      , F.FILE_EXT
+		      , F.FILE_MIME
+		      , F.FILE_FANCYSIZE
+		      , F.FILE_SAVE_DATE
+		      , F.FILE_DOWNCOUNT
+		FROM    BOARD B
+		JOIN    EMPLOYEE E 
+		        ON B.EMP_NO = E.EMP_NO
+		LEFT OUTER JOIN FILE_DETAIL F 
+		        ON B.FILE_GROUP_NO = F.FILE_GROUP_NO
+		WHERE   B.BBS_NO = #{bbsNo}
+	</select>
+	
+	<!-- 게시물 등록 -->
+	<insert id="registDoc" parameterType="boardVO">
+		  <selectKey keyProperty="bbsNo" resultType="String" order="BEFORE">
+		        SELECT 'DU' || LPAD(TO_NUMBER(SUBSTR(COALESCE((SELECT MAX(BBS_NO) 
+                FROM BOARD 
+                WHERE BBS_NO LIKE 'DU%'), 'DU00000'), 3)) + 1, 5, '0')
+		        FROM DUAL
+		    </selectKey>
+		    
+		    INSERT INTO BOARD (
+		        BBS_NO,
+		        BBS_TTL,
+		        EMP_NO,
+		        BBS_CN,
+		        REG_DT,
+		        INQ_CNT,
+		        DEL_YN,
+		        RCRIT_STTUS_CD,
+		        DELNG_STTUS_CD,
+		        BBS_CD,
+		        SUGEST_CLSF_CD,
+		        FILE_GROUP_NO
+		    )
+		    VALUES (
+		        #{bbsNo},  
+		        #{bbsTtl},
+		        #{empNo},
+		        #{bbsCn},
+		        SYSDATE,
+		        0,
+		        'N',
+		        NULL,
+		        NULL,
+		        'A02-005',
+		        NULL,
+		        #{fileGroupNo}
+		    )
+	</insert>
+	
+	<!-- 파일 그룹 번호 조회 -->
+	<select id="getFileGroupNo" resultType="int">
+		SELECT NVL(MAX(FILE_GROUP_NO),0)+1 FROM FILE_DETAIL
+	</select> 
+	
+	<!-- 파일 상세 정보 조회 -->
+	<select id="getFileDetails" parameterType="int" resultType="fileDetailVO">
+		SELECT FILE_SN, FILE_GROUP_NO, FILE_ORIGINAL_NM, FILE_SAVE_NM, FILE_SAVE_LOCATE
+		     , FILE_SIZE, FILE_EXT, FILE_MIME, FILE_FANCYSIZE, FILE_SAVE_DATE, FILE_DOWNCOUNT
+		FROM   FILE_DETAIL
+		WHERE  FILE_GROUP_NO = #{fileGroupNo} 
+	</select>
+	
+	<!-- 게시물 수정 -->
+	<update id="updateDoc" parameterType="boardVO">
+		UPDATE BOARD  
+		SET    BBS_TTL = #{bbsTtl}
+		     , BBS_CN = #{bbsCn} 
+		     <if test="fileGroupNo!=null and fileGroupNo!=''">
+		      , FILE_GROUP_NO = #{fileGroupNo}
+		     </if>
+		WHERE BBS_NO = #{bbsNo}
+	</update>
+	
+	<!-- 게시물 삭제 -->
+	<update id="deleteDoc" parameterType="hashMap">
+	<choose>
+    	<when test="checkList.size != 0">
+            UPDATE BOARD
+            SET    DEL_YN = 'Y'
+            WHERE  BBS_NO IN
+        			<foreach collection="checkList" item="item" 
+                    			separator="," open="(" close=")">
+                    	#{item}
+                    </foreach>
+	        </when>
+	    </choose>
+	</update>
+	
+	<!-- 조회수 증가 -->
+	<update id="increaseInq" parameterType="String">
+		UPDATE BOARD
+		SET INQ_CNT = INQ_CNT + 1
+		WHERE BBS_NO = #{bbsNo}
+	</update>
+	
+	<!-- 이전 게시물 조회 -->
+	<select id="detailPrev" resultType="boardVO" parameterType="String">
+		SELECT BBS_NO
+		     , BBS_TTL
+		     , EMP_NO
+		     , BBS_CN
+		     , REG_DT
+		     , INQ_CNT
+		     , DEL_YN
+		     , RCRIT_STTUS_CD
+		     , DELNG_STTUS_CD
+		     , BBS_CD
+		     , SUGEST_CLSF_CD
+		     , FILE_GROUP_NO
+		FROM BOARD
+		WHERE BBS_NO = (
+		    SELECT MAX(BBS_NO)
+		    FROM BOARD
+		    WHERE BBS_NO &lt; #{bbsNo}
+		      AND BBS_NO LIKE 'DU%'
+		)
+	</select>
+	
+	<!-- 다음 게시물 조회 -->
+	<select id="detailNext" resultType="boardVO" parameterType="String">
+		SELECT BBS_NO
+		     , BBS_TTL
+		     , EMP_NO
+		     , BBS_CN
+		     , REG_DT
+		     , INQ_CNT
+		     , DEL_YN
+		     , RCRIT_STTUS_CD
+		     , DELNG_STTUS_CD
+		     , BBS_CD
+		     , SUGEST_CLSF_CD
+		     , FILE_GROUP_NO
+		FROM BOARD
+		WHERE BBS_NO = (
+		    SELECT MIN(BBS_NO)
+		    FROM BOARD
+		    WHERE BBS_NO &gt; #{bbsNo}
+		      AND BBS_NO LIKE 'DU%'
+		)
+	</select>
+
+	
+</mapper>
+
+
+
+
+

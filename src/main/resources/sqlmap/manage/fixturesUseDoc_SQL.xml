@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.manage.mapper.FixturesUseDocMapper">
+	
+	
+	<!-- 자동완성 쿼리 -->
+	<select id="autocomplete" parameterType="hashMap" resultType="hashMap">
+    	SELECT F.FXTRS_NO, F.FXTRS_NM, F.PRCHS_YMD, F.FXTRS_QY, F.RMRK_CN
+		     , F.FXTRS_PSTN_CD, F.FXTRS_STTUS_CD, F.FXTRS_PHOTO, F.DEL_YN, F.FILE_GROUP_NO
+		     , P.CLSF_NM AS FXTRS_PSTN_NM, S.CLSF_NM AS FXTRS_STTUS_NM
+		FROM FIXTURES F
+		LEFT JOIN COMMON_CODE P ON F.FXTRS_PSTN_CD = P.CLSF_CD
+		LEFT JOIN COMMON_CODE S ON F.FXTRS_STTUS_CD = S.CLSF_CD
+		WHERE DEL_YN IS NULL
+		AND FXTRS_STTUS_CD = 'A11-002'
+		AND FXTRS_NM LIKE #{fxtrsNm}
+	</select>
+	
+	<!-- 비품 사용 신청 문서 등록 -->
+	<insert id="fixRegist" parameterType="fixturesUseDocVO">
+		INSERT INTO FIXTURES_USE_DOC (
+		      DOC_NO, DOC_TTL, FXTRS_NM, WRT_YMD, FXTRS_QY
+		    , USE_PRPS, USE_BGNG_YMD, USE_END_YMD, HTML_CD, DOC_CD
+		    , DRFT_EMP_NO
+	    ) VALUES (
+	         (SELECT 'FXTU' || LPAD(NVL(TO_NUMBER(SUBSTR(MAX(DOC_NO), 5)), 0) + 1, 5, '0') FROM FIXTURES_USE_DOC)
+	        ,#{docTtl},#{fxtrsNm},#{wrtYmd},#{fxtrsQy}
+	        ,#{usePrps},#{useBgngYmd},#{useEndYmd},#{htmlCd, jdbcType=CLOB}, #{docCd} 
+	        ,#{drftEmpNo}
+	    )
+	</insert>
+	
+	<!-- 직원 정보 조회 -->
+	<select id="getEmpInfo" resultType="employeeVO">
+    	SELECT E.EMP_NO, E.EMP_NM, E.DEPT_CD, E.JBGD_CD, E.EMP_TELNO, E.JNCMP_YMD
+	          , D.CLSF_NM AS DEPT_NM, J.CLSF_NM AS JBGD_NM
+	    FROM EMPLOYEE E
+	    LEFT JOIN COMMON_CODE D ON E.DEPT_CD = D.CLSF_CD
+	    LEFT JOIN COMMON_CODE J ON E.JBGD_CD = J.CLSF_CD
+	    WHERE E.DEL_YN = 'N'
+	    AND    EMP_NO = #{empNo}
+	</select>
+	
+	<!-- 차량 사용 신청 문서 등록 -->
+	<insert id="carRegist" parameterType="carUseDocVO">
+		INSERT INTO CAR_USE_DOC (
+	      	DOC_NO
+	      , DOC_TTL
+	      , WRT_YMD
+	      , USE_PRPS
+	      , USE_BGNG_YMD
+	      , USE_END_YMD
+	      , HTML_CD
+	      , DOC_CD
+	      , DRFT_EMP_NO
+	    ) VALUES (
+	       (SELECT 'CARU' || LPAD(NVL(TO_NUMBER(SUBSTR(MAX(DOC_NO), 5)), 0) + 1, 5, '0') FROM CAR_USE_DOC)
+	      , #{docTtl}
+	      , #{wrtYmd}
+	      , #{usePrps}
+	      , #{useBgngYmd}
+	      , #{useEndYmd}
+	      , #{htmlCd}
+	      , #{docCd}
+	      , #{drftEmpNo}
+	    )
+	</insert>
+	
+</mapper>
+
+
+
+

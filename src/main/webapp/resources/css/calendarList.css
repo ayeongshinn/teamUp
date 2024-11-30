@@ -1,0 +1,364 @@
+@charset "UTF-8";
+
+	@font-face {
+    font-family: 'Pretendard-Regular';
+    src: url('https://fastly.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');
+    font-weight: 100;
+    font-style: normal;
+	}
+	
+	body {
+	    font-family: 'Pretendard-Regular', sans-serif;
+	}
+	
+	#entire {
+		width: 100%;
+		height: auto;
+		background-color: white;
+	}
+
+	#calendar {
+		width: 100%;
+		height: auto;
+	}
+	
+	.swal2-icon { /* 아이콘 */ 
+		font-size: 8px !important;
+		width: 40px !important;
+		height: 40px !important;
+	}
+	
+	.swal2-styled.swal2-cancel {
+	   font-size: 14px;
+	   background-color: #f8f9fa;
+	   color: black;
+	   border: 1px solid #D9D9D9;
+	}
+	
+	.swal2-styled.swal2-confirm {
+	   font-size: 14px;
+	   margin-left: 10px;
+	}
+	
+	.swal2-title { /* 타이틀 텍스트 사이즈 */
+		font-size: 18px !important;
+		padding: 2em;
+	}
+	
+	.swal2-container.swal2-center>.swal2-popup {
+		padding-top: 30px;
+	}
+	
+	/* 첫 번째 열(왼쪽)의 테두리 제거 */
+	.fc .fc-daygrid-body td:first-of-type,
+	.fc .fc-col-header-cell:first-of-type {
+	    border-left: none !important; /* 왼쪽 테두리 제거 */
+	}
+	
+	/* 마지막 열(오른쪽)의 테두리 제거 */
+	.fc .fc-daygrid-body td:last-of-type,
+	.fc .fc-col-header-cell:last-of-type {
+	    border-right: none !important; /* 오른쪽 테두리 제거 */
+	}
+	
+	/* 모든 셀 간의 기본 테두리를 조정 */
+	.fc .fc-daygrid-body td,
+	.fc .fc-col-header-cell {
+	    border-right: 1px solid transparent !important; /* 기본 테두리를 투명하게 */
+	    border-left: 1px solid transparent !important;
+	}
+	
+	/* 일요일 날짜 빨간색 */
+	.fc-day-sun a {
+	  color: red;
+	  text-decoration: none;
+	}
+	
+	/* 토요일 날짜 파란색 */
+	.fc-day-sat a {
+	  color: blue;
+	  text-decoration: none;
+	}
+	
+	/* 월 제목 */
+	.fc-toolbar-title {
+		margin-right: 10px;
+	    font-size: 30px;
+	    color: #000000;
+	}
+	
+	/* 오늘 날짜 표시 기본 색 없앰 */
+	.fc-day-today {
+		background-color: transparent !important;
+	}
+	
+	/* 오늘 날짜 표시 스타일*/
+	.fc-day-today .fc-daygrid-day-number {
+		background-color: red; /* 배경색 (동그라미) */
+        color: white; /* 숫자 색상 */
+        border-radius: 50%; /* 동그라미 모양 */
+        width: 25px; /* 동그라미 크기 조정 */
+        height: 25px; /* 동그라미 크기 조정 */
+        
+        display: flex; /* 숫자를 중앙에 배치하기 위해 flexbox 사용 */
+	    align-items: center; /* 수직 중앙 정렬 */
+	    justify-content: center; /* 수평 중앙 정렬 */
+	}
+	
+	.fc-day-today .fc-daygrid-day-number::after {
+	    content: "today!"; /* 텍스트 추가 */
+	    font-size: 12px; /* 텍스트 크기 */
+	    color: red; /* 텍스트 색상 */
+	    position: absolute; /* 절대 위치로 조정 */
+	    left: -40px; /* 텍스트를 숫자 왼쪽으로 이동 */
+	    top: 5px; /* 텍스트가 숫자의 수직 위치와 맞춰지도록 조정 */
+	}
+	
+	
+	.fc-next-button,
+	.fc-prev-button,
+	.fc-dayGridMonth-button,
+	.fc-dayGridWeek-button,
+	.fc-timeGridDay-button,
+	.fc-today-button {
+	    border-radius: 50% !important; /* 버튼을 완전히 둥글게 만듦 */
+	    width: 32px !important; /* 버튼의 너비 설정 */
+	    height: 32px !important; /* 버튼의 높이 설정 */
+	    background-color: white !important; /* 배경색을 흰색으로 설정 */
+	    color: #333 !important; /* 텍스트 색상 설정 */
+	    border: 1px solid #ddd !important; /* 테두리 설정 */
+	    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important; /* 그림자 효과 추가 */
+	    display: flex !important;
+	    align-items: center !important;
+	    justify-content: center !important;
+	}
+
+	.fc-next-button:hover,
+	.fc-prev-button:hover,
+	.fc-today-button:hover,
+	.fc-dayGridMonth-button:hover,
+	.fc-dayGridWeek-button:hover,
+	.fc-timeGridDay-button:hover {
+	    background-color: #f8f8f8 !important;
+	}
+	
+	.fc-today-button,
+	.fc-dayGridMonth-button,
+	.fc-dayGridWeek-button,
+	.fc-timeGridDay-button  {
+	    width: auto !important;
+	    padding: 0 13px !important;
+	    border-radius: 16px !important; /* 완전한 원형 대신 둥근 모서리로 설정 */
+	    cursor: pointer;
+	}
+	
+	.fc-dayGridMonth-button,
+	.fc-dayGridWeek-button,
+	.fc-timeGridDay-button {
+		margin-right: 8px !important;
+	}
+	
+	/* 화살표 버튼 */
+	.fc-prev-button, .fc-next-button {
+		background-color: #FFFFFF !important;
+		border: 2px solid white !important;
+		margin-right: 10px !important;
+	} 
+	
+	/* 화살표 */
+	.fc-icon-chevron-left, .fc-icon-chevron-right {
+		color: #848484 !important;
+	}
+	
+	.fc-icon-chevron-left:hover, .fc-icon-chevron-right:hover {
+		color: #6E6E6E !important;
+	}
+ 	
+ 	/* 일정 추가 모달 등록 버튼*/
+	#confirm {
+		margin-left: 20px;
+		background-color: #4E7DF4;
+	}
+	
+	/* 일정 수정 모달 등록 버튼*/
+	#updateConfirm {
+		margin-left: 20px;
+		background-color: #4E7DF4;
+	}
+	
+	#eventTooltip {
+	    background-color: white;
+	    border: 1px solid #ccc;
+	    padding: 10px;
+	    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+	    border-radius: 8px;
+	    font-size: 14px;
+	    width: 320px;
+	    display: none;
+	}
+	
+	#tooltipTitle {
+	    font-size: 18px;
+	    font-weight: bold;
+	}
+	
+	#tooltipTime {
+	    font-size: 14px;
+	    color: gray;
+	}
+	
+	.flex-container {
+	    display: flex;  /* Flexbox로 자식 요소들을 가로로 배치 */
+	    align-items: center;  /* 자식 요소들을 세로로 가운데 정렬 */
+	}
+	
+	.color-picker {
+	    width: 40px;  /* 색상 선택 필드 크기 조정 */
+	    height: 40px;
+	    border: none;
+	    margin-left: 10px;  /* 라벨과 input 요소 간격 조정 */
+	}
+	
+	.flex-container select {
+	    margin-right: 10px;  /* 분류 선택과 배경색 선택 간의 간격 */
+	}
+	
+	#category {
+	  display: flex;
+	  justify-content: flex-start;
+	  gap: 12px;
+	  padding: 10px 0;
+	}
+	
+	/* 일정 추가 모달 */
+	.color-palette {
+	    display: flex;
+	    gap: 10px;
+	    margin-top: 5px;
+	}
+	
+	.color-box {
+	    width: 30px;
+	    height: 30px;
+	    cursor: pointer;
+	    border: 2px solid transparent;
+	    position: relative;
+	    transition: all 0.3s ease;
+	}
+	
+	.color-box.selected::after {
+	    content: '\2713';
+	    font-size: 20px;
+	    color: white; /* 체크 아이콘의 색상 */
+	    position: absolute;
+	    top: 50%;
+	    left: 50%;
+	    transform: translate(-50%, -50%);
+	    display: block;
+	    z-index: 10;
+	}
+	
+	.color-box:hover {
+		filter: brightness(0.85);
+	}
+	
+	.color-box:focus {
+    	border: 2px solid #000000;
+	}
+	
+	/* 일정 수정 모달 */
+	.update-color-palette {
+	    display: flex;
+	    gap: 10px;
+	    margin-top: 5px;
+	}
+	
+	.update-color-box {
+	    width: 30px;
+	    height: 30px;
+	    cursor: pointer;
+	    position: relative;
+	    border: 2px solid transparent;
+	    transition: all 0.3s ease;
+	}
+	
+	.update-color-box.selected::after {
+	    content: '\2713';
+	    font-size: 20px;
+	    color: white; /* 체크 아이콘의 색상 */
+	    position: absolute;
+	    top: 50%;
+	    left: 50%;
+	    transform: translate(-50%, -50%);
+	    display: block;
+	    z-index: 10;
+	}
+	
+	.update-color-box:hover {
+		filter: brightness(0.85);
+	}
+	
+	.update-color-box:focus {
+    	border: 2px solid #000000;
+	}
+	
+	/* 툴팁 */
+	[data-tooltip] {
+	  cursor: pointer;
+	  color: #848484;
+	  display: inline-block;
+	  line-height: 1;
+	  position: relative;
+	}
+	
+	[data-tooltip]::after {
+	  background-color: rgba(51, 51, 51, 0.9);
+	  border-radius: 0.3rem;
+	  color: #fff;
+	  content: attr(data-tooltip);
+	  font-size: 85%;
+	  font-weight: normal;
+	  line-height: 1.15rem;
+	  opacity: 0;
+	  padding: 0.25rem 0.5rem;
+	  position: absolute;
+	  text-align: center;
+	  text-transform: none;
+	  transition: opacity 0.2s;
+	  visibility: hidden;
+	  white-space: nowrap;
+	  z-index: 1;
+	}
+	
+	[data-tooltip].tooltip-right::after {
+	  top: 50%;
+	  left: calc(100% + 0.3rem);
+	  transform: translateY(-50%);
+	}
+	
+	[data-tooltip].tooltip-right::before {
+	  border-color: transparent rgba(51, 51, 51, 0.9) transparent transparent;
+	  border-style: solid;
+	  border-width: 0.3rem;
+	  content: "";
+	  left: calc(100% + 0.1rem);
+	  position: absolute;
+	  top: 50%;
+	  transform: translateY(-50%);
+	  visibility: hidden;
+	  opacity: 0;
+	  transition: opacity 0.2s;
+	}
+	
+	[data-tooltip]:hover::after,
+	[data-tooltip]:hover::before {
+	  visibility: visible;
+	  opacity: 1;
+	} 
+	
+	.filter-link.filterSelected {
+	    background-color: #4E7DF4 !important;
+	    color: white !important;
+	    border-color: #4E7DF4 !important;
+	}
+		

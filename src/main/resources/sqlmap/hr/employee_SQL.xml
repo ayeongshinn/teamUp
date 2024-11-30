@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.hr.mapper.EmployeeMapper">
+	<resultMap type="employeeVO" id="employeeMap">
+	<result property="empNo" column="EMP_NO"/>
+	<result property="empPswd" column="EMP_PSWD"/>
+	<result property="empNm" column="EMP_NM"/>
+	<result property="empRrno" column="EMP_RRNO"/>
+	<result property="empBrdt" column="EMP_BRDT"/>
+	<result property="empTelno" column="EMP_TELNO"/>
+	<result property="empEmlAddr" column="EMP_EML_ADDR"/>
+	<result property="jncmpYmd" column="JNCMP_YMD"/>
+	<result property="rsgntnYmd" column="RSGNTN_YMD"/>
+	<result property="roadNmZip" column="ROAD_NM_ZIP"/>
+	<result property="roadNmAddr" column="ROAD_NM_ADDR"/>
+	<result property="daddr" column="DADDR"/>
+	<result property="empIntrcn" column="EMP_INTRCN"/>
+	<result property="delYn" column="DEL_YN"/>
+	<result property="proflPhoto" column="PROFL_PHOTO"/>
+	<result property="offcsPhoto" column="OFFCS_PHOTO"/>
+	<result property="jbgdCd" column="JBGD_CD"/>
+	<result property="jbttlCd" column="JBTTL_CD"/>
+	<result property="deptCd" column="DEPT_CD"/>
+	<result property="sexdstnCd" column="SEXDSTN_CD"/>
+	<result property="enabled" column="ENABLED"/>
+		<collection property="empAuthVOList" resultMap="empAuthMap"></collection>
+	</resultMap>
+	
+	<resultMap type="empAuthVO" id="empAuthMap">
+		<result property="empNo" column="EMP_NO"/>
+		<result property="authority" column="AUTHORITY"/>
+	</resultMap>
+	
+	<!-- 사원 로그인 -->
+	<select id="getLogin" parameterType="String" resultMap="employeeMap">
+		SELECT A.EMP_NO, A.EMP_PSWD, A.EMP_NM, A.EMP_RRNO, A.EMP_BRDT
+		     , A.EMP_TELNO, A.EMP_EML_ADDR, A.JNCMP_YMD, A.RSGNTN_YMD, A.ROAD_NM_ZIP
+		     , A.ROAD_NM_ADDR, A.DADDR, A.EMP_INTRCN, A.DEL_YN, A.PROFL_PHOTO
+		     , A.OFFCS_PHOTO, A.JBGD_CD, A.JBTTL_CD, A.DEPT_CD, A.SEXDSTN_CD
+		     , A.ENABLED, B.AUTHORITY
+		FROM EMPLOYEE A, EMP_AUTH B
+		WHERE A.EMP_NO = B.EMP_NO
+		AND A.ENABLED = '1'
+		AND A.EMP_NO = #{username}
+	</select>
+	
+	<!-- 사원 비밀번호 찾기 -->
+	<select id="findPswdAjax" parameterType="employeeVO" resultType="employeeVO">
+		SELECT EMP_PSWD
+		FROM EMPLOYEE
+		WHERE EMP_NO = #{empNo}
+		AND EMP_RRNO = #{empRrno}
+		AND ENABLED = '1'
+	</select>
+	
+	<!-- 사원 비밀번호 재설정 
+	//{empNo=20240001,empPswdNew=dsaflkjfdsalkfdsj}
+	-->
+	<update id="updatePswdAjax" parameterType="employeeVO">
+		UPDATE EMPLOYEE
+		SET EMP_PSWD = #{empPswdNew}
+		WHERE EMP_NO = #{empNo}
+	</update>
+	
+	<!-- 인사부서 -> 사원등록 -->
+	<insert id="batchInsert" parameterType="list">
+	    INSERT ALL
+	    <foreach collection="list" item="employeeVO" index="index" separator="">
+	        INTO EMPLOYEE(
+	            EMP_NO, EMP_NM, EMP_RRNO, EMP_BRDT, EMP_TELNO,
+	            EMP_EML_ADDR, JNCMP_YMD, ROAD_NM_ZIP, ROAD_NM_ADDR, DADDR,
+	            JBGD_CD, JBTTL_CD, DEPT_CD, SEXDSTN_CD
+	            <if test="employeeVO.offcsPhoto != null and employeeVO.offcsPhoto != ''">
+	                , OFFCS_PHOTO
+	            </if>
+	        ) 
+	        VALUES (
+	            emp_custom_no(), #{employeeVO.empNm}, #{employeeVO.empRrno}, #{employeeVO.empBrdt}, #{employeeVO.empTelno},
+	            #{employeeVO.empEmlAddr}, #{employeeVO.jncmpYmd}, #{employeeVO.roadNmZip}, #{employeeVO.roadNmAddr}, #{employeeVO.daddr},
+	            #{employeeVO.jbgdCd}, #{employeeVO.jbttlCd}, #{employeeVO.deptCd}, #{employeeVO.sexdstnCd}
+	            <if test="employeeVO.offcsPhoto != null and employeeVO.offcsPhoto != ''">
+	                , #{employeeVO.offcsPhoto}
+	            </if>
+	        )
+	    </foreach>
+	    SELECT * FROM DUAL
+	</insert>
+	
+	<!-- 사원 개별 등록 :: 장영원 -->
+	<insert id="registPost" parameterType="employeeVO">
+		INSERT INTO EMPLOYEE(
+			EMP_NO, EMP_NM, EMP_RRNO, EMP_BRDT, EMP_TELNO,
+			EMP_EML_ADDR, JNCMP_YMD, ROAD_NM_ZIP, ROAD_NM_ADDR, DADDR,
+			JBGD_CD, JBTTL_CD, DEPT_CD, SEXDSTN_CD, PROFL_PHOTO
+			<if test="offcsPhoto != null and offcsPhoto != ''">
+				, OFFCS_PHOTO
+			</if>
+			)
+			VALUES(
+				emp_custom_no(), #{empNm}, #{empRrno}, #{empBrdt}, #{empTelno},
+				#{empEmlAddr}, #{jncmpYmd}, #{roadNmZip}, #{roadNmAddr}, #{daddr},
+				#{jbgdCd}, #{jbttlCd}, #{deptCd}, #{sexdstnCd}, #{proflPhoto}
+				<if test="offcsPhoto != null and offcsPhoto != ''">
+					, #{offcsPhoto}
+				</if>
+			)
+	</insert>
+
+	<!-- 공통코드 찾기 :: 장영원 -->
+	<select id="searchCommonCd" parameterType="String" resultType="commonCodeVO">
+		SELECT CLSF_CD, CLSF_NM, OUTPT_SN, GROUP_CD
+		FROM   COMMON_CODE
+		WHERE  GROUP_CD = #{groupCd}
+	</select>
+	
+	<!-- test :: 장영원 -->
+	<select id="test" parameterType="String" resultType="employeeVO">
+		SELECT EMP_NO, EMP_PSWD, EMP_NM, EMP_RRNO, EMP_BRDT, EMP_TELNO, EMP_EML_ADDR, JNCMP_YMD, RSGNTN_YMD
+			, ROAD_NM_ZIP, ROAD_NM_ADDR, DADDR, EMP_INTRCN, DEL_YN, JBGD_CD, JBTTL_CD, DEPT_CD, SEXDSTN_CD
+			, ENABLED, PROFL_PHOTO, OFFCS_PHOTO
+		FROM EMPLOYEE
+		WHERE EMP_NO = #{empNo}
+	</select>
+	
+	<!-- 사내 전 사원 목록 :: 장영원 -->
+	<select id="list" parameterType="hashMap" resultType="employeeVO">
+		WITH T AS
+		(	
+			SELECT ROW_NUMBER() OVER(ORDER BY E.EMP_NM) RNUM
+			     , E.EMP_NO, E.EMP_NM, E.EMP_BRDT, E.EMP_TELNO, E.EMP_EML_ADDR
+			     , E.JNCMP_YMD, E.RSGNTN_YMD
+			     , E.ROAD_NM_ZIP, E.ROAD_NM_ADDR, E.DADDR, E.EMP_INTRCN
+			     , E.JBGD_CD
+			     , JBGD.CLSF_NM AS JBGD_NM
+			     , E.JBTTL_CD
+			     , JBTTL.CLSF_NM AS JBTTL_NM
+			     , E.DEPT_CD
+			     , DEPT.CLSF_NM AS DEPT_NM
+			     , E.SEXDSTN_CD
+			     , SEXDSTN.CLSF_NM AS SEXDSTN_NM
+			     , E.PROFL_PHOTO, E.OFFCS_PHOTO, E.DEL_YN
+			FROM   EMPLOYEE E
+				LEFT JOIN COMMON_CODE JBGD ON E.JBGD_CD = JBGD.CLSF_CD
+				LEFT JOIN COMMON_CODE JBTTL ON E.JBTTL_CD = JBTTL.CLSF_CD
+				LEFT JOIN COMMON_CODE DEPT ON E.DEPT_CD = DEPT.CLSF_CD
+				LEFT JOIN COMMON_CODE SEXDSTN ON E.SEXDSTN_CD = SEXDSTN.CLSF_CD
+			WHERE  1 = 1
+			
+			<!-- 입사일자 범위 조건 -->
+	        <if test="jncmpStart != null and jncmpStart != ''">
+	            AND E.JNCMP_YMD &gt;= #{jncmpStart, jdbcType=VARCHAR}
+	        </if>
+	        <if test="jncmpEnd != null and jncmpEnd != ''">
+	            AND E.JNCMP_YMD &lt;= #{jncmpEnd, jdbcType=VARCHAR}
+	        </if>
+	        
+	        <!-- 퇴사일자 범위 조건 -->
+	        <if test="rsgntnStart != null and rsgntnStart != ''">
+	            AND E.RSGNTN_YMD &gt;= #{rsgntnStart, jdbcType=VARCHAR}
+	        </if>
+	        <if test="rsgntnEnd != null and rsgntnEnd != ''">
+	            AND E.RSGNTN_YMD &lt;= #{rsgntnEnd, jdbcType=VARCHAR}
+	        </if>
+	
+	        <!-- 퇴사 여부 조건 (재직, 퇴직) -->
+	        <if test="delynField != null and delynField != '' and delynField != 'all'">
+	            AND E.DEL_YN = #{delynField}
+	        </if>
+	
+	        <!-- 검색 필드에 따른 검색 조건 -->
+	        <if test="searchField != null and searchField != 'all'">
+	            <choose>
+	                <when test="searchField == 'dept'">
+	                    AND DEPT.CLSF_NM LIKE '%' || #{keyword} || '%'
+	                </when>
+	                <when test="searchField == 'jbgd'">
+	                    AND JBGD.CLSF_NM LIKE '%' || #{keyword} || '%'
+	                </when>
+	                <when test="searchField == 'empNm'">
+	                    AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+	                </when>
+	            </choose>
+	        </if>
+	
+	        <!-- 기본 키워드 검색 (사원명 기준) -->
+	        <if test="searchField == null or searchField == 'all'">
+			    <if test="keyword != null and keyword != ''">
+			        AND (
+			            DEPT.CLSF_NM LIKE '%' || #{keyword} || '%'
+			            OR JBGD.CLSF_NM LIKE '%' || #{keyword} || '%'
+			            OR E.EMP_NM LIKE '%' || #{keyword} || '%'
+			        )
+			    </if>
+			</if>
+		)
+		SELECT * FROM T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 15) - (15 - 1) AND (#{currentPage} * 15)
+	</select>
+	
+	<!-- 사내 전 사원 수 :: 장영원 -->
+	<select id="getTotal" resultType="int" parameterType="hashMap">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE E
+				LEFT JOIN COMMON_CODE JBGD ON E.JBGD_CD = JBGD.CLSF_CD
+				LEFT JOIN COMMON_CODE JBTTL ON E.JBTTL_CD = JBTTL.CLSF_CD
+				LEFT JOIN COMMON_CODE DEPT ON E.DEPT_CD = DEPT.CLSF_CD
+				LEFT JOIN COMMON_CODE SEXDSTN ON E.SEXDSTN_CD = SEXDSTN.CLSF_CD
+		WHERE  1 = 1
+		<!-- 입사일자 범위 조건 -->
+        <if test="jncmpStart != null and jncmpStart != ''">
+            AND E.JNCMP_YMD &gt;= #{jncmpStart, jdbcType=VARCHAR}
+        </if>
+        <if test="jncmpEnd != null and jncmpEnd != ''">
+            AND E.JNCMP_YMD &lt;= #{jncmpEnd, jdbcType=VARCHAR}
+        </if>
+        
+        <!-- 퇴사일자 범위 조건 -->
+        <if test="rsgntnStart != null and rsgntnStart != ''">
+            AND E.RSGNTN_YMD &gt;= #{rsgntnStart, jdbcType=VARCHAR}
+        </if>
+        <if test="rsgntnEnd != null and rsgntnEnd != ''">
+            AND E.RSGNTN_YMD &lt;= #{rsgntnEnd, jdbcType=VARCHAR}
+        </if>
+
+        <!-- 퇴사 여부 조건 (재직, 퇴직) -->
+        <if test="delynField != null and delynField != '' and delynField != 'all'">
+            AND E.DEL_YN = #{delynField}
+        </if>
+
+        <!-- 검색 필드에 따른 검색 조건 -->
+        <if test="searchField != null and searchField != 'all'">
+            <choose>
+                <when test="searchField == 'dept'">
+                    AND DEPT.CLSF_NM LIKE '%' || #{keyword} || '%'
+                </when>
+                <when test="searchField == 'jbgd'">
+                    AND JBGD.CLSF_NM LIKE '%' || #{keyword} || '%'
+                </when>
+                <when test="searchField == 'empNm'">
+                    AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+                </when>
+            </choose>
+        </if>
+
+        <!-- 기본 키워드 검색 (사원명 기준) -->
+        <if test="searchField == null or searchField == 'all'">
+		    <if test="keyword != null and keyword != ''">
+		        AND (
+		            DEPT.CLSF_NM LIKE '%' || #{keyword} || '%'
+		            OR JBGD.CLSF_NM LIKE '%' || #{keyword} || '%'
+		            OR E.EMP_NM LIKE '%' || #{keyword} || '%'
+		        )
+		    </if>
+		</if>
+	</select>
+
+	<!-- 전  사원 수  :: 장영원-->
+	<select id="empTotal" resultType="int">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE
+	</select>
+	
+	<!-- 금년 입사 사원 수 :: 장영원 -->
+	<select id="empJoin" resultType="int">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE
+		WHERE  SUBSTR(JNCMP_YMD, 0, 4) = TO_CHAR(SYSDATE, 'YYYY')
+	</select>
+	
+	<!-- 금년 퇴사 사원 수 :: 장영원 -->
+	<select id="empResign" resultType="int">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE
+		WHERE  SUBSTR(RSGNTN_YMD, 0, 4) = TO_CHAR(SYSDATE, 'YYYY')
+	</select>
+	
+	<!-- 현재 재직자 수 :: 장영원 -->
+	<select id="empInOffice" resultType="int">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE
+		WHERE  DEL_YN = 'N'
+	</select>
+	
+	<!-- 전년말 근로자 수 구하는 쿼리 :: 장영원 -->
+	<select id="empLastYear" resultType="int">
+	    SELECT COUNT(*)
+	    FROM EMPLOYEE
+	    WHERE TO_DATE(JNCMP_YMD, 'YYYYMMDD') &lt;= TO_DATE(TO_CHAR(ADD_MONTHS(SYSDATE, -12), 'YYYY') || '1231', 'YYYYMMDD')
+	    AND (RSGNTN_YMD IS NULL OR TO_DATE(RSGNTN_YMD, 'YYYYMMDD') &gt; TO_DATE(TO_CHAR(ADD_MONTHS(SYSDATE, -12), 'YYYY') || '1231', 'YYYYMMDD'))
+	</select>
+	
+	<!-- 사원 상세 정보 :: 장영원 -->
+	<select id="detail" parameterType="String" resultType="employeeVO">
+		SELECT E.EMP_NO, E.EMP_NM, E.EMP_BRDT, E.EMP_TELNO, E.EMP_EML_ADDR
+		     , E.JNCMP_YMD, E.RSGNTN_YMD, E.ROAD_NM_ZIP, E.ROAD_NM_ADDR, E.DADDR
+		     , E.DEL_YN, E.JBGD_CD, E.JBTTL_CD, E.DEPT_CD, E.SEXDSTN_CD, E.PROFL_PHOTO
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = E.JBGD_CD) JBGD_NM
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = E.JBTTL_CD) JBTTL_NM
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = E.DEPT_CD) DEPT_NM
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = E.SEXDSTN_CD) SEXDSTN_NM
+		FROM   EMPLOYEE E INNER JOIN COMMON_CODE C ON (E.JBGD_CD = C.CLSF_CD)
+		WHERE  EMP_NO = #{empNo}
+	</select>
+	
+	<!-- 무한 스크롤 -->
+	<select id="addressList" parameterType="hashMap" resultType="employeeVO">
+	    SELECT * FROM (
+	        SELECT E.EMP_NO, E.EMP_NM, E.EMP_BRDT, E.EMP_TELNO, E.EMP_EML_ADDR,
+	               E.JNCMP_YMD, E.RSGNTN_YMD, E.ROAD_NM_ZIP, E.ROAD_NM_ADDR, E.DADDR, E.EMP_INTRCN,
+	               E.JBGD_CD, JBGD.CLSF_NM AS JBGD_NM, 
+	               E.JBTTL_CD, JBTTL.CLSF_NM AS JBTTL_NM, 
+	               E.DEPT_CD, DEPT.CLSF_NM AS DEPT_NM, 
+	               E.SEXDSTN_CD, SEXDSTN.CLSF_NM AS SEXDSTN_NM, 
+	               E.PROFL_PHOTO, E.OFFCS_PHOTO, E.DEL_YN,
+	               ROW_NUMBER() OVER (ORDER BY E.EMP_NM) AS RNUM
+	        FROM EMPLOYEE E
+	             LEFT JOIN COMMON_CODE JBGD ON E.JBGD_CD = JBGD.CLSF_CD
+	             LEFT JOIN COMMON_CODE JBTTL ON E.JBTTL_CD = JBTTL.CLSF_CD
+	             LEFT JOIN COMMON_CODE DEPT ON E.DEPT_CD = DEPT.CLSF_CD
+	             LEFT JOIN COMMON_CODE SEXDSTN ON E.SEXDSTN_CD = SEXDSTN.CLSF_CD
+	        WHERE E.DEL_YN = 'N'
+	        <if test="keyword != null and keyword != ''">
+	            AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+	        </if>
+	    )
+	    WHERE RNUM BETWEEN #{offset} + 1 AND #{offset} + #{limit}
+	</select>
+	
+	<!-- 주소록 사원 -->
+	<select id="getEmpList" resultType="employeeVO">
+		SELECT EMP_NO , EMP_NM , EMP_BRDT , EMP_TELNO , EMP_EML_ADDR
+     	 	 , EMP_INTRCN , PROFL_PHOTO , JBGD.CLSF_NM AS JBGD_NM
+     	     , JBTTL.CLSF_NM AS JBTTL_NM , DEPT.CLSF_NM AS DEPT_NM
+     	     , SEXDSTN.CLSF_NM AS SEXDSTN_NM
+		FROM   EMPLOYEE E
+		       LEFT JOIN COMMON_CODE JBGD ON E.JBGD_CD = JBGD.CLSF_CD
+		       LEFT JOIN COMMON_CODE JBTTL ON E.JBTTL_CD = JBTTL.CLSF_CD
+		       LEFT JOIN COMMON_CODE DEPT ON E.DEPT_CD = DEPT.CLSF_CD
+		       LEFT JOIN COMMON_CODE SEXDSTN ON E.SEXDSTN_CD = SEXDSTN.CLSF_CD
+		ORDER BY E.EMP_NM
+	</select>
+	
+	<!-- 주소록 사원 -->
+	<select id="getEmployeeListByDept" parameterType="String" resultType="employeeVO">
+		    SELECT E.EMP_NO, E.EMP_NM, E.EMP_BRDT, E.EMP_TELNO, E.EMP_EML_ADDR,
+		           E.EMP_INTRCN, E.PROFL_PHOTO,
+		           JBGD.CLSF_NM AS JBGD_NM,
+		           JBTTL.CLSF_NM AS JBTTL_NM,
+		           DEPT.CLSF_NM AS DEPT_NM,
+		           SEXDSTN.CLSF_NM AS SEXDSTN_NM
+		    FROM   EMPLOYEE E
+		   		   INNER JOIN COMMON_CODE JBGD ON E.JBGD_CD = JBGD.CLSF_CD
+		    	   INNER JOIN COMMON_CODE JBTTL ON E.JBTTL_CD = JBTTL.CLSF_CD
+		    	   INNER JOIN COMMON_CODE DEPT ON E.DEPT_CD = DEPT.CLSF_CD
+		    	   INNER JOIN COMMON_CODE SEXDSTN ON E.SEXDSTN_CD = SEXDSTN.CLSF_CD
+		    WHERE  E.DEL_YN = 'N'
+		    AND	   E.DEPT_CD = #{deptCd}
+		    ORDER BY E.EMP_NM
+	</select>
+	
+	
+	<select id="getAddressList" parameterType="hashMap" resultType="employeeVO">
+	    WITH T AS
+		(	
+			SELECT ROW_NUMBER() OVER(ORDER BY E.EMP_NM) RNUM
+			     , E.EMP_NO, E.EMP_NM, E.EMP_BRDT, E.EMP_TELNO, E.EMP_EML_ADDR
+			     , E.JNCMP_YMD, E.RSGNTN_YMD
+			     , E.ROAD_NM_ZIP, E.ROAD_NM_ADDR, E.DADDR, E.EMP_INTRCN
+			     , E.JBGD_CD
+			     , JBGD.CLSF_NM AS JBGD_NM
+			     , E.JBTTL_CD
+			     , JBTTL.CLSF_NM AS JBTTL_NM
+			     , E.DEPT_CD
+			     , DEPT.CLSF_NM AS DEPT_NM
+			     , E.SEXDSTN_CD
+			     , SEXDSTN.CLSF_NM AS SEXDSTN_NM
+			     , E.PROFL_PHOTO, E.OFFCS_PHOTO, E.DEL_YN
+			FROM   EMPLOYEE E
+				LEFT JOIN COMMON_CODE JBGD ON E.JBGD_CD = JBGD.CLSF_CD
+				LEFT JOIN COMMON_CODE JBTTL ON E.JBTTL_CD = JBTTL.CLSF_CD
+				LEFT JOIN COMMON_CODE DEPT ON E.DEPT_CD = DEPT.CLSF_CD
+				LEFT JOIN COMMON_CODE SEXDSTN ON E.SEXDSTN_CD = SEXDSTN.CLSF_CD
+			WHERE E.DEL_YN = 'N'
+		    <if test="keyword != null and keyword != ''">
+		        AND  E.EMP_NM LIKE '%' || #{keyword} || '%'
+		    </if>
+		    <if test="deptCd != null and deptCd != ''">
+		        AND  E.DEPT_CD = #{deptCd}
+		    </if>
+		)
+		SELECT * FROM T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+	
+	<select id="getAddressTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE E
+				LEFT JOIN COMMON_CODE JBGD ON E.JBGD_CD = JBGD.CLSF_CD
+				LEFT JOIN COMMON_CODE JBTTL ON E.JBTTL_CD = JBTTL.CLSF_CD
+				LEFT JOIN COMMON_CODE DEPT ON E.DEPT_CD = DEPT.CLSF_CD
+				LEFT JOIN COMMON_CODE SEXDSTN ON E.SEXDSTN_CD = SEXDSTN.CLSF_CD
+		WHERE E.DEL_YN = 'N'
+		    <if test="keyword != null and keyword != ''">
+		        AND  E.EMP_NM LIKE '%' || #{keyword} || '%'
+		    </if>
+		    <if test="deptCd != null and deptCd != ''">
+		        AND  E.DEPT_CD = #{deptCd}
+		    </if>
+	</select>
+	
+</mapper>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 영업 진척도용 SQL :: 이재현 -->
+
+<mapper namespace="kr.or.ddit.bsn.mapper.BusinessProgressMapper">
+	
+	<!-- Chart list 용 -->
+	<select id="chartDataList" resultType="businessProgressVO">
+		SELECT MANAGE_NO, BSN_TTL, BSN_CN, TKCG_EMP_NO, RBPRSN_EMP_NO,
+    		   BSN_BGNG_YMD, BSN_END_YMD, BSN_PROGRS, REG_DT, BSN_NM
+		FROM BUSINESS_PROGRESS
+		WHERE TO_CHAR(TO_DATE(BSN_BGNG_YMD, 'YYYYMMDD'), 'YYYYMM') = TO_CHAR(SYSDATE, 'YYYYMM')
+    		  OR BSN_END_YMD IS NULL
+	</select>
+	
+	<!-- 영업 진척도 insert -->
+	<insert id="businessInsert" parameterType="businessProgressVO">
+		INSERT INTO BUSINESS_PROGRESS (
+			MANAGE_NO, BSN_TTL, BSN_CN, TKCG_EMP_NO, RBPRSN_EMP_NO,
+		    BSN_BGNG_YMD, BSN_END_YMD, BSN_PROGRS, REG_DT,
+		    BSN_NM
+		) VALUES (
+		    (
+		        SELECT 'MNG' || LPAD(NVL(MAX(SUBSTR(MANAGE_NO, 4)), 0) + 1, 7, '0')
+		        FROM BUSINESS_PROGRESS
+		   	),
+		   	#{bsnTtl}, #{bsnCn}, #{tkcgEmpNo}, #{rbprsnEmpNo},
+			#{bsnBgngYmd}, #{bsnEndYmd}, #{bsnProgrs}, #{regDt},
+			#{bsnNm}
+		)
+	</insert>
+	
+	<!-- Chart 데이터 조회 -->
+<!-- 	<select id="chartDataList" resultType="businessProgressVO"> -->
+<!-- 	 	SELECT BSN_NM, BSN_PROGRS -->
+<!--         FROM BUSINESS_PROGRESS -->
+<!-- 	</select> -->
+	
+	<!-- 영업 진척도 상세 조회 -->
+	<select id="businessDetail" parameterType="String" resultType="businessProgressVO">
+		SELECT A.MANAGE_NO, A.BSN_TTL, A.BSN_CN, A.TKCG_EMP_NO, A.RBPRSN_EMP_NO,
+		           A.BSN_BGNG_YMD, A.BSN_END_YMD, A.BSN_PROGRS, A.REG_DT, A.BSN_NM,
+		           B.EMP_NM AS TKCG_EMP_NM,          <!-- 담당자명 -->
+		           B.JBTTL_CD AS TKCG_EMP_JBTTL,  	 <!-- 담당자 직급 코드 -->
+		           D.CLSF_NM AS TKCG_EMP_JBTTL_NM,   <!-- 담당자 직급명 -->
+		           C.EMP_NM AS RBPRSN_EMP_NM,  		 <!-- 책임자 이름 -->
+		           C.JBTTL_CD AS RBPRSN_EMP_JBTTL,   <!-- 책임자 직급 코드 -->
+		           E.CLSF_NM AS RBPRSN_EMP_JBTTL_NM  <!-- 책임자 직급명 -->
+		FROM BUSINESS_PROGRESS A
+		INNER JOIN EMPLOYEE B ON A.TKCG_EMP_NO = B.EMP_NO  
+		INNER JOIN EMPLOYEE C ON A.RBPRSN_EMP_NO = C.EMP_NO
+		INNER JOIN COMMON_CODE D ON B.JBTTL_CD = D.CLSF_CD  
+		INNER JOIN COMMON_CODE E ON C.JBTTL_CD = E.CLSF_CD  
+		WHERE A.BSN_NM = #{bsnNm}
+	</select>
+	
+	<!-- 직급 리스트용 -->
+	<select id="jbgdNmList" resultType="businessProgressVO">
+		SELECT CLSF_NM
+		FROM COMMON_CODE
+		WHERE GROUP_CD = 'A19'
+	</select>
+	
+	<!-- 영업 진척도 수정 페이지용 -->
+	<select id="businessUpdate" resultType="businessProgressVO">
+		SELECT MANAGE_NO, BSN_TTL, BSN_CN, TKCG_EMP_NO, RBPRSN_EMP_NO, BSN_BGNG_YMD,
+	           BSN_END_YMD, BSN_PROGRS, REG_DT, DEL_YN, CNPT_NO, CUST_NO,
+	           FILE_GROUP_NO, BSN_NM
+		FROM BUSINESS_PROGRESS
+		WHERE MANAGE_NO = #{manageNo}
+	</select>
+	
+	<!-- 영업 진척도 수정 실행 -->
+	<update id="businessUpdatePost" parameterType="businessProgressVO">
+		UPDATE BUSINESS_PROGRESS
+		SET   BSN_TTL = #{bsnTtl},
+		      BSN_CN = #{bsnCn},
+		      BSN_PROGRS = #{bsnProgrs}
+		WHERE MANAGE_NO = #{manageNo}
+	</update>
+	
+	<!-- 영업 진척도 삭제 실행 -->
+	<delete id="businessDeletePost" parameterType="String">
+		DELETE FROM BUSINESS_PROGRESS
+		WHERE BSN_NM = #{bsnNm}
+	</delete>
+
+</mapper>

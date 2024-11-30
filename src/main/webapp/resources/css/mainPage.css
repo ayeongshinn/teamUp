@@ -1,0 +1,260 @@
+@charset "UTF-8";
+
+
+	@font-face {
+       font-family: 'Pretendard-Regular';
+       src: url('https://fastly.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');
+       font-weight: 100;
+       font-style: normal;
+   }
+   
+   body {
+   	font-family: 'Pretendard-Regular', sans-serif;
+   }
+   
+   /* 대쉬 보드 시작 */
+   	.dashboard {
+		display: grid;
+		grid-template-columns: 1.3fr 1fr 1.3fr;
+		grid-template-rows: 1fr 1fr 1.5fr;
+		grid-gap: 40px;
+		height: 89vh;
+		padding: 50px 60px;
+	}
+	.card {
+		background-color: white;
+		border-radius: 20px;
+		padding: 20px;
+		padding: 20px;
+		box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+		margin: 0px;
+	}
+	.user-info {
+		grid-column: 1/3;
+		grid-row: 1;
+		background-color: #4E7DF4;
+		color: white;
+		display: flex;
+		flex-direction: row;
+	}
+	.calendar {
+		grid-column: 3;
+		grid-row: 1/3;
+	}
+	.quick-menu {
+		grid-row: 2;
+	}
+	.notice {
+		grid-column: 1;
+		grid-row: 3;
+	}
+	.todo_list {
+		grid-column: 2;
+		grid-row: 2/4;
+	}
+	.address-book {
+		grid-column: 3;
+		grid-row: 3;
+	}
+	/* 대쉬 보드 끝 */
+	
+	/* 오른쪽 하단 고정된 원 모양 */
+	.floating-circle {
+	    position: fixed; /* 화면의 고정된 위치에 있게 함 */
+	    bottom: 50px; /* 화면의 아래쪽에서 떨어진 위치 */
+	    right: 50px; /* 화면의 오른쪽에서 떨어진 위치 */
+	    width: 60px; /* 원의 너비 */
+	    height: 60px; /* 원의 높이 */
+	    background-color: #4E7DF4; /* 원의 배경 색상 */
+	    border-radius: 50%; /* 원 모양 */
+	    display: flex;
+	    justify-content: center;
+	    align-items: center;
+	    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* 그림자 추가 */
+	    color: white; /* 텍스트 색상 */
+	    font-size: 24px; /* 텍스트 크기 */
+	    z-index: 9999; /* 페이지의 다른 요소 위에 고정되게 함 */
+	    cursor: pointer; /* 마우스를 올렸을 때 클릭 가능한 손 모양 */
+	}
+	
+	/* 호버 시 효과 */
+	.floating-circle:hover {
+	    background-color: #3B6ECF; /* 호버 시 색상 변경 */
+	    transform: scale(1.1); /* 살짝 커지는 효과 */
+	    transition: transform 0.2s ease-in-out;
+	}
+	
+	#qrModal {
+		display: none;
+	}
+	
+	#lvWrkBtn {
+		display:none;
+	}
+	
+    /* Input Field 스타일 */
+    #inputField #todoInput {
+        width: calc(100% - 45px);
+        height: 38px;
+        border: 1px solid #eee;
+        border-radius: 4px;
+        padding: 10px;
+        font-size: 14px; /* 글씨 크기를 작게 설정 */
+        font-weight: 300; /* 글씨를 얇게 설정 */
+        margin-top: 15px; /* 입력 필드에 위쪽 여백 추가 */
+    }
+
+    #inputField #todoInput:focus {
+        outline: none;
+    }
+
+    #inputField #addBtn {
+        position: relative;
+        width: 35px;
+        height: 35px;
+        border: none;
+        background-color: #007bff;
+        border-radius: 4px;
+        cursor: pointer;
+        vertical-align: middle;
+    }
+
+    /* todoList 스타일링 */
+    #todoList {
+        list-style: none;
+        margin: 0;
+        padding: 10px;
+        text-align: left;
+        max-height: 430px;
+        overflow-y: auto;
+        font-size: 14px; /* 글씨 크기를 작게 설정 */
+        font-weight: 300; /* 글씨를 얇게 설정 */
+        margin-top: 10px;
+    }
+
+    #todoList li {
+        padding: 10px 0;
+        user-select: none;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    #todoList li:last-child {
+        border-bottom: none;
+    }
+
+    #todoList li.complete {
+        text-decoration: line-through; /* 체크된 항목에 줄을 긋기 */
+        color: #a3a3a3; /* 체크된 항목의 글씨 색상 변경 */
+    }
+
+    /* todo-item을 가로로 배치 */
+    .todo-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px;
+        position: relative;
+    }
+
+    .todo-content {
+        display: flex;
+        align-items: center;
+        flex-grow: 1;
+        font-size: 14px; /* 글씨 크기 작게 */
+        font-weight: 300; /* 글씨 얇게 */
+    }
+
+    .todo-checkbox {
+        margin-right: 10px;
+    }
+
+    /* 완료된 항목에 스타일 적용 */
+    .todo-checkbox:checked + .thin-label {
+        color: #a3a3a3; /* 글씨 색상 회색으로 변경 */
+        text-decoration: line-through; /* 줄 그어줌 */
+    }
+
+    /* todo-buttons: hover 전에는 보이지 않게 설정 */
+    .todo-buttons {
+        display: flex;
+        gap: 10px;
+        opacity: 0; /* 기본적으로 버튼을 숨김 */
+        transition: opacity 0.3s ease; /* 서서히 나타나게 하는 효과 */
+    }
+
+    /* 마우스를 todo-item에 올리면 버튼이 보이도록 설정 */
+    .todo-item:hover .todo-buttons {
+        opacity: 1; /* 마우스 오버 시 버튼이 나타남 */
+    }
+
+    /* 버튼 스타일 공통 */
+    .todo-buttons button,
+    #todoList button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 12px; /* 버튼 크기를 작게 설정 */
+        height: 12px;
+        margin-right: 8px;
+        border-radius: 4px;
+        opacity: 0.7; /* 약간 투명하게 설정 */
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    /* 버튼에 마우스를 올렸을 때 크기를 키우고 불투명하게 */
+    .todo-buttons button:hover {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    /* 스크롤바 스타일 */
+    #todoList::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    #todoList::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 5px;
+    }
+
+    #todoList::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* 편집 입력 필드 */
+    .edit-input {
+        width: 100%;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .thin-label {
+        font-size: 14px; /* 작은 글씨 */
+        font-weight: 300; /* 얇은 글씨 */
+        margin: 0; /* margin 없앰 */
+        padding: 0; /* 필요시 padding도 없앰 */
+    }
+
+    .todo-input {
+        margin-top: 15px;
+    }
+    
+    .todo-item.completed label {
+	    text-decoration: line-through;
+	    color: #888;
+	}
+	
+	.todo-item.completed {
+	    background-color: #f8f9fa;
+	}
+	
+	.todo-checkbox {
+	    margin-right: 10px;
+	}
+	
+	/* 체크박스가 체크되었을 때의 스타일 */
+	.todo-checkbox:checked + label {
+	    text-decoration: line-through;
+	    color: #888;
+	}

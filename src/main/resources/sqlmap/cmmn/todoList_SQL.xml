@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.or.ddit.cmmn.mapper.TodoListMapper">
+
+	
+    <!-- 특정 To-Do 항목 조회 (ID로 조회) -->
+    <select id="list" parameterType="String" resultType="ToDoListVO">
+	    SELECT  LIST_NO, GOAL_NM, EMP_NO, DEL_YN, CHECK_STA
+		  FROM  TO_DO_LIST
+		 WHERE  EMP_NO = #{empNo}   
+		   AND  DEL_YN = 'N'
+	  ORDER BY  LIST_NO DESC
+	</select>
+	
+	<insert id="insertTodo" parameterType="ToDoListVO">
+	    INSERT INTO "TEAM2_202403F"."TO_DO_LIST" 
+	           (LIST_NO, GOAL_NM, EMP_NO, DEL_YN, CHECK_STA) 
+	    VALUES (
+	        (
+	            SELECT 'TO' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(LIST_NO, 4))), 0) + 1, 4, '0')
+	            FROM "TEAM2_202403F"."TO_DO_LIST"
+	            WHERE LIST_NO LIKE 'TO%'
+	        ),
+	        #{goalNm}, 
+	        #{empNo}, 
+	        'N',
+	        'N'
+	    )
+	</insert>
+	
+	<!-- To-Do 기존 항목 수정 -->
+	<update id="updateTodo" parameterType="ToDoListVO">
+		UPDATE  TO_DO_LIST
+		SET     GOAL_NM = #{goalNm}
+		WHERE   LIST_NO = #{listNo}
+	</update>
+
+	<!-- To-Do 기존 항목 삭제 -->
+	<update id="deletePost" parameterType="String">
+		UPDATE  TO_DO_LIST
+		SET 	DEL_YN = 'Y'
+		WHERE   LIST_NO = #{listNo}
+	</update>
+	
+	<!-- 전체 항목 삭제 -->
+	<update id="allDelete" parameterType="String">
+		UPDATE  TO_DO_LIST
+		SET 	DEL_YN = 'Y'
+		WHERE   EMP_NO = #{empNo}
+	</update>
+	
+	<!-- 체크박스 완료 상태 on  -->
+	<update id="checkSta" parameterType="String">
+		UPDATE  TO_DO_LIST
+		SET 	CHECK_STA = 'Y'
+		WHERE   LIST_NO = #{listNo}
+	</update>
+	
+	<!-- 체크박스 완료 상태  off-->
+	<update id="checkStaOff" parameterType="String">
+		UPDATE  TO_DO_LIST
+		SET 	CHECK_STA = 'N'
+		WHERE   LIST_NO = #{listNo}
+	</update>
+	
+
+  
+</mapper>

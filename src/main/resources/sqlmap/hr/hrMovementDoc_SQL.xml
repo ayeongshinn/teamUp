@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.hr.mapper.HrMovementDocMapper">
+	
+	<select id="hrMovementDoclist" resultType="hrMovementDocVO">
+		SELECT DOC_NO, DOC_TTL, DOC_CN, WRT_YMD, TRGT_EMP_NO, DEPT_CD, JBGD_CD, HTML_CD, TRGT_EMP_DAY
+		FROM   HR_MOVEMENT_DOC
+	</select>
+	
+	<resultMap type="commonCodeVO" id="commonCodeMap">
+		<result property="clsfCd" column="CLSF_CD"/>
+		<result property="clsfNm" column="CLSF_NM"/>
+		<result property="outptSn" column="OUTPT_SN"/>
+		<result property="groupCd" column="GROUP_CD"/>
+		<collection property="employeeVOList" resultMap="employeeMap"></collection>
+	</resultMap>
+	
+	<resultMap type="employeeVO" id="employeeMap">
+		<result property="empNo" column="EMP_NO"/>
+		<result property="empPswd" column="EMP_PSWD"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empRrno" column="EMP_RRNO"/>
+		<result property="empBrdt" column="EMP_BRDT"/>
+		<result property="empTelno" column="EMP_TELNO"/>
+		<result property="empEmlAddr" column="EMP_EML_ADDR"/>
+		<result property="jncmpYmd" column="JNCMP_YMD"/>
+		<result property="rsgntnYmd" column="RSGNTN_YMD"/>
+		<result property="roadNmZip" column="ROAD_NM_ZIP"/>
+		<result property="roadNmAddr" column="ROAD_NM_ADDR"/>
+		<result property="daddr" column="DADDR"/>
+		<result property="empIntrcn" column="EMP_INTRCN"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="proflPhoto" column="PROFL_PHOTO"/>
+		<result property="offcsPhoto" column="OFFCS_PHOTO"/>
+		<result property="jbgdCd" column="JBGD_CD"/>
+		<result property="jbttlCd" column="JBTTL_CD"/>
+		<result property="deptCd" column="DEPT_CD"/>
+		<result property="sexdstnCd" column="SEXDSTN_CD"/>
+		<result property="enabled" column="ENABLED"/>
+		<result property="jbgdNm" column="JBGD_NM"/>
+	</resultMap>
+	
+	<select id="deptList" resultType="commonCodeVO">
+		SELECT CLSF_CD
+		     , CLSF_NM
+		     , OUTPT_SN
+		     , GROUP_CD
+		FROM   COMMON_CODE
+		WHERE  GROUP_CD = 'A17'
+	</select>
+	
+	<select id="jbgdList" resultType="commonCodeVO">
+		SELECT CLSF_CD
+		     , CLSF_NM
+		     , OUTPT_SN
+		     , GROUP_CD
+		FROM   COMMON_CODE
+		WHERE  GROUP_CD = 'A18'
+	</select>
+	
+	<select id="deptEmpList" parameterType="String" resultMap="commonCodeMap">
+		SELECT C.CLSF_CD, C.CLSF_NM, C.OUTPT_SN, C.GROUP_CD
+		     , E.EMP_NO, E.EMP_NM, E.JBGD_CD, E.JBTTL_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = E.JBGD_CD) JBGD_NM
+		FROM   COMMON_CODE C INNER JOIN EMPLOYEE E ON(C.CLSF_CD = E.DEPT_CD)
+		AND    C.GROUP_CD = 'A17'
+		AND    C.CLSF_CD = #{deptCd}
+		AND    E.DEL_YN = 'N'
+	</select>
+	
+	<select id="empDetail" parameterType="String" resultType="employeeVO">
+		SELECT EMP_NO, EMP_NM,  EMP_BRDT, EMP_TELNO, EMP_EML_ADDR, JNCMP_YMD
+		     , RSGNTN_YMD, ROAD_NM_ZIP, ROAD_NM_ADDR, DADDR, EMP_INTRCN
+		     , JBGD_CD, JBTTL_CD, DEPT_CD, SEXDSTN_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = E.JBGD_CD) JBGD_NM
+		FROM   EMPLOYEE E INNER JOIN COMMON_CODE C ON(E.DEPT_CD = C.CLSF_CD)
+		WHERE  DEL_YN = 'N'
+		AND    EMP_NO = #{empNo}
+	</select>
+	
+	<select id="hrLeader" resultType="employeeVO">
+		SELECT EMP_NO, EMP_NM
+		FROM   EMPLOYEE
+		WHERE  DEL_YN = 'N'
+		AND    JBTTL_CD = 'A19-002'
+		AND    DEPT_CD = 'A17-005'
+	</select>
+	
+	<select id="ceo" resultType="employeeVO">
+		SELECT EMP_NO, EMP_NM
+		FROM   EMPLOYEE
+		WHERE  DEL_YN = 'N'
+		AND    JBTTL_CD = 'A19-003'
+		AND    JBGD_CD = 'A18-006'
+	</select>
+	
+	<!-- 인사이동 서류 등록 -->
+	<insert id="hrMovementDocRegist" parameterType="hrMovementDocVO">
+	    INSERT INTO HR_MOVEMENT_DOC (
+	        DOC_NO, DOC_TTL, DOC_CN, WRT_YMD, TRGT_EMP_NO, DEPT_CD, JBGD_CD, TRGT_EMP_DAY, HTML_CD
+	    ) VALUES (
+	        movement_doc_no(), #{docTtl}, #{docCn}, TO_CHAR(SYSDATE, 'YYYYMMDD'), #{trgtEmpNo}, #{deptCd}, #{jbgdCd}, #{trgtEmpDay}, #{htmlCd, jdbcType=CLOB}
+	    )
+	</insert>
+	
+	<!-- 휴가 서류 등록 -->
+	<insert id="vacationDocRegist" parameterType="vacationDocVO">
+		INSERT INTO VACATION_DOC(
+		    DOC_NO, VCATN_CD, DOC_TTL, WRT_YMD, VCATN_RSN, USE_VCATN_DAY_CNT
+		    , SCHDL_BGNG_YMD, SCHDL_END_YMD, HTML_CD, DRFT_EMP_NO)
+		VALUES (
+		    vacation_doc_no(), #{vcatnCd}, #{docTtl}, TO_CHAR(SYSDATE, 'YYYYMMDD'), #{vcatnRsn}
+		    , #{useVcatnDayCnt}, #{schdlBgngYmd}, #{schdlEndYmd}, #{htmlCd}, #{drftEmpNo})
+	</insert>
+
+	<!-- 휴가 서류 등록 -->
+	<insert id="resignationDocRegist" parameterType="resignationDocVO">
+		INSERT INTO RESIGNATION_DOC(
+		    DOC_NO, DOC_TTL, RSGNTN_RSN, RSGNTN_YMD, WRT_YMD, HTML_CD, DRFT_EMP_NO)
+		VALUES (resign_doc_no(), #{docTtl}, #{rsgntnRsn}, #{rsgntnYmd}, TO_CHAR(SYSDATE, 'YYYYMMDD'), #{htmlCd}, #{drftEmpNo})
+	</insert>
+	
+	<select id="getHrMovementDoc" parameterType="String" resultType="hrMovementDocVO">
+    	SELECT DOC_NO, DOC_TTL, DOC_CN, WRT_YMD, TRGT_EMP_NO, DEPT_CD, JBGD_CD, TRGT_EMP_DAY, HTML_CD, DOC_CD
+	    FROM   HR_MOVEMENT_DOC
+	    WHERE  DOC_NO = #{docNo}
+	</select>
+	
+	<!-- 자동완성 쿼리 -->
+	<select id="autocomplete" parameterType="hashMap" resultType="hashMap">
+    	SELECT E.EMP_NO, E.EMP_NM, E.DEPT_CD, E.JBGD_CD, E.EMP_TELNO, E.JNCMP_YMD
+	          , D.CLSF_NM AS DEPT_NM, J.CLSF_NM AS JBGD_NM
+	    FROM EMPLOYEE E
+	    LEFT JOIN COMMON_CODE D ON E.DEPT_CD = D.CLSF_CD
+	    LEFT JOIN COMMON_CODE J ON E.JBGD_CD = J.CLSF_CD
+	    WHERE E.DEL_YN = 'N'
+	    AND E.EMP_NM LIKE #{empNm}
+	</select>
+	
+	<!-- 휴가 사유 -->
+	<select id="vacationReasonList" resultType="commonCodeVO">
+		SELECT CLSF_CD, CLSF_NM
+		FROM   COMMON_CODE
+		WHERE  GROUP_CD = 'A22'
+	</select>
+	
+	<resultMap id="documentResultMap" type="DocumentVO">
+	    <result property="docNo" column="DOC_NO"/>
+	    <result property="docTtl" column="DOC_TTL"/>
+	    <result property="fxtrsNm" column="FXTRS_NM"/>
+	    <result property="wrtYmd" column="WRT_YMD"/>
+	    <result property="fxtrsQy" column="FXTRS_QY"/>
+	    <result property="usePrps" column="USE_PRPS"/>
+	    <result property="useBgngYmd" column="USE_BGNG_YMD"/>
+	    <result property="useEndYmd" column="USE_END_YMD"/>
+	    <result property="htmlCd" column="HTML_CD"/>
+	    <result property="docCd" column="DOC_CD"/>
+	    <result property="drftEmpNo" column="DRFT_EMP_NO"/>
+	    <result property="ctrtCn" column="CTRT_CN"/>
+	    <result property="rbprsnEmpNo" column="RBPRSN_EMP_NO"/>
+	    <result property="ctrtAmt" column="CTRT_AMT"/>
+	    <result property="cnptNo" column="CNPT_NO"/>
+	    <result property="custNo" column="CUST_NO"/>
+	    <result property="atrzSttusCd" column="ATRZ_STTUS_CD"/>
+	    <result property="docCn" column="DOC_CN"/>
+	    <result property="trgtEmpNo" column="TRGT_EMP_NO"/>
+	    <result property="deptCd" column="DEPT_CD"/>
+	    <result property="jbgdCd" column="JBGD_CD"/>
+	    <result property="trgtEmpDay" column="TRGT_EMP_DAY"/>
+	    <result property="vcatnCd" column="VCATN_CD"/>
+	    <result property="vcatnRsn" column="VCATN_RSN"/>
+	    <result property="useVcatnDayCnt" column="USE_VCATN_DAY_CNT"/>
+	    <result property="schdlBgngYmd" column="SCHDL_BGNG_YMD"/>
+	    <result property="schdlEndYmd" column="SCHDL_END_YMD"/>
+	    <result property="rsgntnRsn" column="RSGNTN_RSN"/>
+	    <result property="rsgntnYmd" column="RSGNTN_YMD"/>
+	</resultMap>
+	
+	<!-- 모든 문서 리스트 -->
+	<select id="getAllDocList" resultMap="documentResultMap">
+		SELECT DOC_NO, DOC_TTL, CTRT_CN, WRT_YMD, RBPRSN_EMP_NO, CTRT_AMT, CNPT_NO, CUST_NO, HTML_CD, ATRZ_STTUS_CD, NULL, NULL
+		FROM DEALINGS_DOC
+		UNION ALL
+		SELECT DOC_NO, DOC_TTL, DOC_CN, WRT_YMD, TRGT_EMP_NO, DEPT_CD, JBGD_CD, TRGT_EMP_DAY, HTML_CD, DOC_CD, DRFT_EMP_NO, NULL
+		FROM HR_MOVEMENT_DOC
+		UNION ALL
+		SELECT DOC_NO, DOC_TTL, VCATN_RSN, WRT_YMD, NULL, VCATN_CD, USE_VCATN_DAY_CNT, SCHDL_BGNG_YMD, SCHDL_END_YMD, HTML_CD, DOC_CD, DRFT_EMP_NO
+		FROM VACATION_DOC
+		UNION ALL
+		SELECT DOC_NO, DOC_TTL, RSGNTN_RSN, WRT_YMD, NULL, NULL, NULL, NULL, NULL, HTML_CD, DOC_CD, DRFT_EMP_NO, NULL
+		FROM RESIGNATION_DOC
+		UNION ALL
+		SELECT DOC_NO, DOC_TTL, NULL, WRT_YMD, NULL, NULL, NULL, USE_BGNG_YMD, USE_END_YMD, HTML_CD, DOC_CD, DRFT_EMP_NO, NULL
+		FROM CAR_USE_DOC
+		UNION ALL
+		SELECT DOC_NO, DOC_TTL, FXTRS_NM, WRT_YMD, NULL, FXTRS_QY, NULL, USE_BGNG_YMD, USE_END_YMD, HTML_CD, DOC_CD, DRFT_EMP_NO, NULL
+		FROM FIXTURES_USE_DOC
+	</select>
+	
+</mapper>

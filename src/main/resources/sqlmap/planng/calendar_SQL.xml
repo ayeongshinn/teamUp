@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.planng.mapper.CalendarMapper">
+
+	<resultMap type="calendarVO" id="calendarMap">
+		<result property="schdlBgngTm" column="SCHDL_BGNG_TM"/>
+		<result property="schdlEndTm" column="SCHDL_END_TM"/>
+		<result property="schdlNo" column="SCHDL_NO"/>
+		<result property="schdlNm" column="SCHDL_NM"/>
+		<result property="schdlCn" column="SCHDL_CN"/>
+		<result property="schdlPlc" column="SCHDL_PLC"/>
+		<result property="empNo" column="EMP_NO"/>
+		<result property="schdlBgngYmd" column="SCHDL_BGNG_YMD"/>
+		<result property="schdlEndYmd" column="SCHDL_END_YMD"/>
+		<result property="userCd" column="USER_CD"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="backColor" column="BACK_COLOR"/>
+		<result property="fontColor" column="FONT_COLOR"/>
+		<collection property="employeeVOList" resultMap="employeeMap"></collection>
+	</resultMap>
+	
+	<resultMap type="employeeVO" id="employeeMap">
+		<result property="empNo" column="EMP_NO"/>
+		<result property="empPswd" column="EMP_PSWD"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empRrno" column="EMP_RRNO"/>
+		<result property="empBrdt" column="EMP_BRDT"/>
+		<result property="empTelno" column="EMP_TELNO"/>
+		<result property="empEmlAddr" column="EMP_EML_ADDR"/>
+		<result property="jncmpYmd" column="JNCMP_YMD"/>
+		<result property="rsgntnYmd" column="RSGNTN_YMD"/>
+		<result property="roadNmZip" column="ROAD_NM_ZIP"/>
+		<result property="roadNmAddr" column="ROAD_NM_ADDR"/>
+		<result property="daddr" column="DADDR"/>
+		<result property="empIntrcn" column="EMP_INTRCN"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="proflPhoto" column="PROFL_PHOTO"/>
+		<result property="offcsPhoto" column="OFFCS_PHOTO"/>
+		<result property="jbgdCd" column="JBGD_CD"/>
+		<result property="jbttlCd" column="JBTTL_CD"/>
+		<result property="deptCd" column="DEPT_CD"/>
+		<result property="sexdstnCd" column="SEXDSTN_CD"/>
+		<result property="enabled" column="ENABLED"/>
+	</resultMap>
+		
+	<!-- 캘린더 전체 일정 목록 -->
+	<select id="getAllEvents" parameterType="String" resultType="calendarVO">
+		SELECT SCHDL_NO, SCHDL_NM, SCHDL_CN, SCHDL_PLC, SCHDL_BGNG_YMD, SCHDL_BGNG_TM,
+           SCHDL_END_YMD, SCHDL_END_TM, USER_CD, DEL_YN, BACK_COLOR, FONT_COLOR
+	      FROM CALENDAR
+	     WHERE DEL_YN = 'N'
+	       AND (
+	            <!-- 공통 일정 -->
+	            USER_CD = 'A03-006'
+	            OR 
+	            <!-- 부서 일정 (같은 부서의 모든 직원이 등록한 일정 포함)-->
+	            USER_CD = (SELECT DEPT_CD FROM EMPLOYEE WHERE EMP_NO = #{empNo})
+	            OR
+	            <!-- 로그인한 사원의 개인 일정 -->
+	            (USER_CD = 'A03-001' AND EMP_NO = #{empNo})
+	           )
+	</select>
+	
+	<!-- 캘린더 공통 일정 목록 -->
+	<select id="getCommonEvents" resultType="calendarVO">
+		SELECT SCHDL_NO, SCHDL_NM, SCHDL_CN, SCHDL_PLC, SCHDL_BGNG_YMD, SCHDL_BGNG_TM,
+			   SCHDL_END_YMD, SCHDL_END_TM, USER_CD, DEL_YN, BACK_COLOR, FONT_COLOR
+		  FROM CALENDAR
+		 WHERE USER_CD = 'A03-006' AND DEL_YN = 'N'
+	</select>
+	
+	<!-- 부서별 일정 목록 -->
+	<select id="getDeptEvents" parameterType="String" resultMap="calendarMap">
+		SELECT C.SCHDL_NO, C.SCHDL_NM, C.SCHDL_CN, C.SCHDL_PLC, C.EMP_NO,
+		       C.SCHDL_BGNG_YMD, C.SCHDL_BGNG_TM, C.SCHDL_END_YMD, C.SCHDL_END_TM,
+		       C.USER_CD, C.DEL_YN, C.BACK_COLOR, C.FONT_COLOR
+		  FROM CALENDAR C
+		 WHERE C.DEL_YN = 'N'
+		   AND C.USER_CD = (SELECT DEPT_CD
+		                      FROM EMPLOYEE
+		                     WHERE EMP_NO = #{empNo})
+	</select>
+	
+	<!-- 개인별 일정 목록 -->
+	<select id="getPerEvents" parameterType="String" resultType="calendarVO">
+		SELECT SCHDL_NO, SCHDL_NM, SCHDL_CN, SCHDL_PLC, SCHDL_BGNG_YMD,
+			   SCHDL_BGNG_TM, SCHDL_END_YMD, SCHDL_END_TM, USER_CD, DEL_YN,
+			   BACK_COLOR, FONT_COLOR
+		  FROM CALENDAR
+		 WHERE EMP_NO = #{empNo} AND USER_CD = 'A03-001' AND DEL_YN = 'N'
+	</select>
+	
+
+	<!-- 일정 추가 -->
+	<insert id="insertEvents" parameterType="calendarVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="schdlNo">
+			SELECT 'C' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(SCHDL_NO, 2, 6))) + 1), 5, '0')
+			FROM CALENDAR
+		</selectKey>
+		INSERT INTO CALENDAR(SCHDL_NO, SCHDL_NM, SCHDL_CN, SCHDL_PLC, EMP_NO,
+                    		 SCHDL_BGNG_YMD, SCHDL_END_YMD, USER_CD, DEL_YN, BACK_COLOR, FONT_COLOR
+                    <if test="schdlBgngTm != null and schdlBgngTm != ''">,SCHDL_BGNG_TM</if>
+                    <if test="schdlEndTm != null and schdlEndTm != ''">, SCHDL_END_TM</if>)
+        VALUES (#{schdlNo}, #{schdlNm}, #{schdlCn}, #{schdlPlc}, #{empNo},
+        		#{schdlBgngYmd}, #{schdlEndYmd}, #{userCd}, 'N', #{backColor}, <![CDATA['#ffffff']]>
+        		<if test="schdlBgngTm != null and schdlBgngTm != ''">,#{schdlBgngTm}</if>
+        		<if test="schdlEndTm != null and schdlEndTm != ''">,#{schdlEndTm}</if>)
+	</insert>
+	
+	<!-- 일정 수정 -->
+	<update id="updateEvents" parameterType="calendarVO">
+		UPDATE CALENDAR
+		SET    SCHDL_NM = #{schdlNm}, SCHDL_CN = #{schdlCn}, SCHDL_PLC = #{schdlPlc} , EMP_NO = #{empNo},
+               SCHDL_BGNG_YMD = #{schdlBgngYmd}, SCHDL_END_YMD = #{schdlEndYmd}, USER_CD = #{userCd}, DEL_YN = 'N',
+               BACK_COLOR = #{backColor}, FONT_COLOR = <![CDATA['#ffffff']]>
+               <if test="schdlBgngTm != null and schdlBgngTm != ''">, SCHDL_BGNG_TM = #{schdlBgngTm}</if>
+        	   <if test="schdlEndTm != null and schdlEndTm != ''">, SCHDL_END_TM = #{schdlEndTm}</if>
+        WHERE  EMP_NO = #{empNo} AND SCHDL_NO = #{schdlNo}
+	</update>
+	
+	<!-- 일정 삭제 -->
+	<update id="deleteEvents" parameterType="calendarVO">
+		UPDATE CALENDAR
+		SET DEL_YN = 'Y'
+		WHERE SCHDL_NO = #{schdlNo} AND EMP_NO = #{empNo}
+	</update>
+</mapper>

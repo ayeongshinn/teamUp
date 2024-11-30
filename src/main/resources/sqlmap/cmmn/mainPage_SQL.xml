@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.or.ddit.cmmn.mapper.MainPageMapper">
+
+	<resultMap type="attendanceVO" id="attendanceMap">
+		<result property="dclzNo" column="DCLZ_NO"/>
+		<result property="empNo" column="EMP_NO"/>
+		<result property="attendYmd" column="ATTEND_YMD"/>
+		<result property="attendTm" column="ATTEND_TM"/>
+		<result property="lvffcTm" column="LVFFC_TM"/>
+		<result property="restHr" column="REST_HR"/>
+		<result property="workHr" column="WORK_HR"/>
+		<result property="mealHr" column="MEAL_HR"/>
+		<result property="ngtwrHr" column="NGTWR_HR"/>
+		<result property="empSttusCd" column="EMP_STTUS_CD"/>
+		<collection property="commonCodeVOList" resultMap="commonCodeMap"></collection>
+	</resultMap>
+	
+	<resultMap type="commonCodeVO" id="commonCodeMap">
+		<result property="clsfCd" column="CLSF_CD"/>
+		<result property="clsfNm" column="CLSF_NM"/>
+		<result property="outptSn" column="OUTPT_SN"/>
+		<result property="groupCd" column="GROUP_CD"/>
+	</resultMap>
+	
+	<select id="getEmpAttendTime" parameterType="String" resultMap="attendanceMap">
+		SELECT DCLZ_NO, EMP_NO, ATTEND_YMD, TO_CHAR(TO_DATE(SUBSTR(ATTEND_TM, 1, 6), 'HH24MISS'), 'HH24:MI') AS ATTEND_TM
+		     , TO_CHAR(TO_DATE(SUBSTR(LVFFC_TM, 1, 6), 'HH24MISS'), 'HH24:MI') AS LVFFC_TM
+		     , REST_HR, WORK_HR, MEAL_HR, NGTWR_HR, EMP_STTUS_CD
+		FROM ATTENDANCE 
+		WHERE EMP_NO = #{empNo}
+		AND ATTEND_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')
+	</select>
+	
+	<select id="getNoticeImprtnc" resultType="noticeVO">
+		SELECT *
+	    FROM (
+	        SELECT NTC_NO, NTC_TTL, NTC_CN, EMP_NO, TO_CHAR((REG_DT), 'YYYY.MM.DD') AS STR_REG_DT
+	             , INQ_CNT, IMPRTNC_YN, DEL_YN, FILE_GROUP_NO, APRV_YN
+	        FROM NOTICE_BOARD
+	        WHERE IMPRTNC_YN = 'Y'
+	        AND DEL_YN = 'N'
+	        AND APRV_YN = 'Y'
+	        ORDER BY REG_DT DESC
+	    )
+	    WHERE ROWNUM &lt;= 2
+	</select>
+	
+	<select id="getNotice" resultType="noticeVO">
+		SELECT *
+		FROM (
+		    SELECT NTC_NO, NTC_TTL, NTC_CN, EMP_NO, TO_CHAR(REG_DT, 'YYYY.MM.DD') AS STR_REG_DT
+		         , INQ_CNT, IMPRTNC_YN, DEL_YN, FILE_GROUP_NO, APRV_YN
+		    FROM NOTICE_BOARD
+		    WHERE IMPRTNC_YN = 'N'
+		    AND DEL_YN = 'N'
+		    AND APRV_YN = 'Y'
+		    ORDER BY REG_DT DESC
+		)
+		WHERE ROWNUM &lt;= 5
+	</select>
+	
+	<update id="empSttusRunUpdate" parameterType="String">
+		UPDATE ATTENDANCE
+		SET EMP_STTUS_CD = 'A13-006'
+		WHERE EMP_NO = #{empNo}
+		AND ATTEND_YMD = TO_CHAR(SYSDATE,'YYYYMMDD')
+	</update>
+	
+	<update id="empSttusReturnUpdate" parameterType="String">
+		UPDATE ATTENDANCE
+		SET EMP_STTUS_CD = 'A13-001'
+		WHERE EMP_NO = #{empNo}
+		AND ATTEND_YMD = TO_CHAR(SYSDATE,'YYYYMMDD')
+	</update>
+	
+	<resultMap type="employeeVO" id="employeeMap">
+		<result property="empNo" column="EMP_NO"/>
+		<result property="empPswd" column="EMP_PSWD"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="empRrno" column="EMP_RRNO"/>
+		<result property="empBrdt" column="EMP_BRDT"/>
+		<result property="empTelno" column="EMP_TELNO"/>
+		<result property="empEmlAddr" column="EMP_EML_ADDR"/>
+		<result property="jncmpYmd" column="JNCMP_YMD"/>
+		<result property="rsgntnYmd" column="RSGNTN_YMD"/>
+		<result property="roadNmZip" column="ROAD_NM_ZIP"/>
+		<result property="roadNmAddr" column="ROAD_NM_ADDR"/>
+		<result property="daddr" column="DADDR"/>
+		<result property="empIntrcn" column="EMP_INTRCN"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="proflPhoto" column="PROFL_PHOTO"/>
+		<result property="offcsPhoto" column="OFFCS_PHOTO"/>
+		<result property="jbgdCd" column="JBGD_CD"/>
+		<result property="jbttlCd" column="JBTTL_CD"/>
+		<result property="deptCd" column="DEPT_CD"/>
+		<result property="sexdstnCd" column="SEXDSTN_CD"/>
+		<result property="enabled" column="ENABLED"/>
+		
+		<result property="jbgdNm" column="JBGD_NM"/>
+	    <result property="jbttlNm" column="JBTTL_NM"/>
+	    <result property="deptNm" column="DEPT_NM"/>
+	    <result property="sexdstnNm" column="SEXDSTN_NM"/>
+		<collection property="empAuthVOList" resultMap="empAuthMap"></collection>
+	</resultMap>
+	
+	<resultMap type="empAuthVO" id="empAuthMap">
+		<result property="empNo" column="EMP_NO"/>
+		<result property="authority" column="AUTHORITY"/>
+	</resultMap>
+	
+	<select id="getAdreesTim" parameterType="employeeVO" resultMap="employeeMap">
+	    <choose>
+	        <when test="deptCd == 'A17-001'">
+	            SELECT *
+	            FROM (
+	                SELECT EMP_NO, EMP_NM, EMP_RRNO, EMP_BRDT
+	                    , EMP_TELNO, EMP_EML_ADDR, JNCMP_YMD, RSGNTN_YMD, ROAD_NM_ZIP
+	                    , ROAD_NM_ADDR, DADDR, EMP_INTRCN, DEL_YN, PROFL_PHOTO
+	                    , OFFCS_PHOTO
+	                    , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBGD_CD) AS JBGD_NM
+	                    , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBTTL_CD) AS JBTTL_NM
+	                    , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DEPT_CD) AS DEPT_NM
+	                    , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = SEXDSTN_CD) AS SEXDSTN_NM
+	                    , ENABLED
+	                FROM EMPLOYEE
+	                WHERE JBTTL_CD = 'A19-002'
+	                AND ROWNUM &lt;= 3
+	            )
+	        </when>
+	        <when test="deptCd != 'A17-001' and jbttlCd =='A19-002'">
+	            SELECT *
+	            FROM (
+	                SELECT EMP_NO, EMP_NM, EMP_RRNO, EMP_BRDT
+	                    , EMP_TELNO, EMP_EML_ADDR, JNCMP_YMD, RSGNTN_YMD, ROAD_NM_ZIP
+	                    , ROAD_NM_ADDR, DADDR, EMP_INTRCN, DEL_YN, PROFL_PHOTO
+	                    , OFFCS_PHOTO
+	                    , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBGD_CD) AS JBGD_NM
+	                    , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBTTL_CD) AS JBTTL_NM
+	                    , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DEPT_CD) AS DEPT_NM
+	                    , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = SEXDSTN_CD) AS SEXDSTN_NM
+	                    , ENABLED
+	                FROM EMPLOYEE
+	                WHERE JBGD_CD = 'A18-003'
+	                AND DEPT_CD = #{deptCd}
+	                AND ROWNUM &lt;= 3
+	            )
+	        </when>
+	        <otherwise>
+	            SELECT * FROM (
+	                SELECT *
+	                FROM (
+	                    SELECT EMP_NO, EMP_NM, EMP_RRNO, EMP_BRDT
+	                        , EMP_TELNO, EMP_EML_ADDR, JNCMP_YMD, RSGNTN_YMD, ROAD_NM_ZIP
+	                        , ROAD_NM_ADDR, DADDR, EMP_INTRCN, DEL_YN, PROFL_PHOTO
+	                        , OFFCS_PHOTO
+	                        , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBGD_CD) AS JBGD_NM
+	                        , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBTTL_CD) AS JBTTL_NM
+	                        , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DEPT_CD) AS DEPT_NM
+	                        , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = SEXDSTN_CD) AS SEXDSTN_NM
+	                        , ENABLED
+	                    FROM EMPLOYEE
+	                    WHERE JBTTL_CD = 'A19-002'
+	                    AND DEPT_CD = #{deptCd}
+	                    AND ROWNUM = 1
+	                )
+	                UNION ALL
+	                SELECT *
+	                FROM (
+	                    SELECT EMP_NO, EMP_NM, EMP_RRNO, EMP_BRDT
+	                        , EMP_TELNO, EMP_EML_ADDR, JNCMP_YMD, RSGNTN_YMD, ROAD_NM_ZIP
+	                        , ROAD_NM_ADDR, DADDR, EMP_INTRCN, DEL_YN, PROFL_PHOTO
+	                        , OFFCS_PHOTO
+	                        , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBGD_CD) AS JBGD_NM
+	                        , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = JBTTL_CD) AS JBTTL_NM
+	                        , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = DEPT_CD) AS DEPT_NM
+	                        , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = SEXDSTN_CD) AS SEXDSTN_NM
+	                        , ENABLED
+	                    FROM EMPLOYEE
+	                    WHERE JBGD_CD = 'A18-003'
+	                    AND EMP_NO != #{empNo}
+	                    AND DEPT_CD = #{deptCd}
+	                    AND ROWNUM &lt;= 2
+	                )
+	            )
+	        </otherwise>
+	    </choose>
+	</select>
+	
+	<!-- 특정 To-Do 항목 조회 (ID로 조회) -->
+    <select id="list" parameterType="String" resultType="ToDoListVO">
+	    SELECT  LIST_NO, GOAL_NM, EMP_NO, DEL_YN
+		  FROM  TO_DO_LIST
+		 WHERE  EMP_NO = #{empNo}   
+		   AND  DEL_YN = 'N'
+	</select>
+	
+	<!-- To-Do 새로운 항목 추가 -->
+	<insert id="insertTodo" parameterType="ToDoListVO">
+	    INSERT INTO TO_DO_LIST (LIST_NO, GOAL_NM, EMP_NO, DEL_YN) 
+	    VALUES (#{listNo}, #{goalNm}, #{empNo}, #{delYn})
+	</insert>
+	
+	<!-- To-Do 기존 항목 수정 -->
+	<update id="updateTodo" parameterType="ToDoListVO">
+		UPDATE  TO_DO_LIST
+		SET     GOAL_NM = #{goalNm}
+		WHERE   LIST_NO = #{listNo}
+	</update>
+
+	<!-- To-Do 기존 항목 삭제 -->
+	<update id="deleteTodo" parameterType="String">
+		UPDATE  TO_DO_LIST
+		SET 	DEL_YN = 'Y'
+		WHERE   LIST_NO = #{listNo}
+	</update>
+	
+	<!-- 한줄소개수정 -->
+	<update id="infoUpdate" parameterType="employeeVO">
+		UPDATE EMPLOYEE
+		SET EMP_INTRCN = #{empIntrcn}
+		WHERE EMP_NO = #{empNo}
+	</update>
+	
+</mapper>

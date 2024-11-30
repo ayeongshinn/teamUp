@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.hr.mapper.SalaryDetailsDocMapper">
+	
+	<!-- 급여명세서 일괄 처리 -->
+	<insert id="batchRegistPost" parameterType="list">
+	    INSERT ALL
+	    <foreach collection="list" item="salaryDetailsDoCVO" index="index" separator="">
+	        INTO SALARY_DETAILS_DOC(
+	              DOC_NO, TRGT_EMP_NO, MEAL_CT
+	            , OTM_PAY, HOL_PAY, NIT_PAY, FAM_ALWNC, TOT_GIVE_AMT
+	            , NPN, HLTHINS_IRNCF, EMPLYMINSRNC_IRNCF
+	            , ECMT, LLX, TOT_DDC_AMT, REAL_RECPT_AMT
+	            , DRFT_EMP_NO
+	            <!-- HTML_CD, -->
+	            <if test="salaryDetailsDoCVO.bonus != null and salaryDetailsDoCVO.bonus != ''">
+	                , BONUS
+	            </if>
+	        )
+	        VALUES(
+	              sal_detail_no(), #{salaryDetailsDoCVO.trgtEmpNo}, #{salaryDetailsDoCVO.mealCt}
+	            , #{salaryDetailsDoCVO.otmPay}, #{salaryDetailsDoCVO.holPay}, #{salaryDetailsDoCVO.nitPay}, #{salaryDetailsDoCVO.famAlwnc}, #{salaryDetailsDoCVO.totGiveAmt}
+	            , #{salaryDetailsDoCVO.npn}, #{salaryDetailsDoCVO.hlthinsIrncf}, #{salaryDetailsDoCVO.emplyminsrncIrncf}
+	            , #{salaryDetailsDoCVO.ecmt}, #{salaryDetailsDoCVO.llx}, #{salaryDetailsDoCVO.totDdcAmt}, #{salaryDetailsDoCVO.realRecptAmt}
+	            , #{salaryDetailsDoCVO.drftEmpNo}
+	            <if test="salaryDetailsDoCVO.bonus != null and salaryDetailsDoCVO.bonus != ''">
+	                , #{salaryDetailsDoCVO.bonus}
+	            </if>
+	        )
+	    </foreach>
+	    SELECT * FROM DUAL
+	</insert>
+
+	<select id="getTrgtEmpNo" parameterType="String" resultType="salaryVO">
+		SELECT EMP_NO, FNST_NM, GIVE_ACTNO, EMP_ANSLRY, EMP_BSLRY, DSGN_YMD
+		FROM   SALARY
+		WHERE  EMP_NO = #{empNo}
+	</select>
+	
+	<select id="getSalaryDetailsDocList" parameterType="hashMap" resultType="salaryDetailsDocVO">
+	  WITH T AS (
+	    SELECT ROW_NUMBER() OVER(ORDER BY E.EMP_NM) RNUM,
+	           S.DOC_NO, 
+	           S.DOC_TTL, 
+	           S.TRGT_EMP_NO,
+	           S.TOT_GIVE_AMT, 
+	           S.TOT_DDC_AMT, 
+	           S.REAL_RECPT_AMT,
+	           E.EMP_NM AS TRGT_EMP_NM,
+	           DEPT_C.CLSF_NM AS DEPT_NM,
+	           JBGD_C.CLSF_NM AS JBGD_NM
+	    FROM   EMPLOYEE E 
+	           INNER JOIN SALARY_DETAILS_DOC S ON (E.EMP_NO = S.TRGT_EMP_NO)
+	           INNER JOIN COMMON_CODE DEPT_C ON (E.DEPT_CD = DEPT_C.CLSF_CD)
+	           INNER JOIN COMMON_CODE JBGD_C ON (E.JBGD_CD = JBGD_C.CLSF_CD)
+	    WHERE  E.DEL_YN = 'N'
+	    AND    S.TRGT_DT = #{trgtDt}
+	    
+	    <!-- 검색 필드와 검색어에 따른 조건 추가 -->
+	    <if test="keyword != null and keyword != ''">
+	      <choose>
+	        <when test="searchField == 'dept'">
+	          AND DEPT_C.CLSF_NM LIKE '%' || #{keyword} || '%'  <!-- 부서 검색 -->
+	        </when>
+	        <when test="searchField == 'jbgd'">
+	          AND JBGD_C.CLSF_NM LIKE '%' || #{keyword} || '%'  <!-- 직급 검색 -->
+	        </when>
+	        <when test="searchField == 'empNm'">
+	          AND E.EMP_NM LIKE '%' || #{keyword} || '%'  <!-- 사원 검색 -->
+	        </when>
+	        <otherwise>
+	          AND (E.EMP_NM LIKE '%' || #{keyword} || '%'
+	           OR DEPT_C.CLSF_NM LIKE '%' || #{keyword} || '%'
+	           OR JBGD_C.CLSF_NM LIKE '%' || #{keyword} || '%')  <!-- 전체 검색 -->
+	        </otherwise>
+	      </choose>
+	    </if>
+	  )
+	  SELECT * FROM T
+	  WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+		
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(S.DOC_NO)
+		FROM   EMPLOYEE E 
+	           INNER JOIN SALARY_DETAILS_DOC S ON (E.EMP_NO = S.TRGT_EMP_NO)
+	           INNER JOIN COMMON_CODE DEPT_C ON (E.DEPT_CD = DEPT_C.CLSF_CD)
+	           INNER JOIN COMMON_CODE JBGD_C ON (E.JBGD_CD = JBGD_C.CLSF_CD)
+	    WHERE  E.DEL_YN = 'N'
+	    AND    S.TRGT_DT = #{trgtDt}
+			    <if test="keyword != null and keyword != ''">
+	      <choose>
+	        <when test="searchField == 'dept'">
+	          AND DEPT_C.CLSF_NM LIKE '%' || #{keyword} || '%'  <!-- 부서 검색 -->
+	        </when>
+	        <when test="searchField == 'jbgd'">
+	          AND JBGD_C.CLSF_NM LIKE '%' || #{keyword} || '%'  <!-- 직급 검색 -->
+	        </when>
+	        <when test="searchField == 'empNm'">
+	          AND E.EMP_NM LIKE '%' || #{keyword} || '%'  <!-- 사원 검색 -->
+	        </when>
+	        <otherwise>
+	          AND (E.EMP_NM LIKE '%' || #{keyword} || '%'
+	           OR DEPT_C.CLSF_NM LIKE '%' || #{keyword} || '%'
+	           OR JBGD_C.CLSF_NM LIKE '%' || #{keyword} || '%')  <!-- 전체 검색 -->
+	        </otherwise>
+	      </choose>
+	    </if>
+	</select>
+	
+	<resultMap type="employeeVO" id="employeeMap">
+	    <result property="offcsPhoto" column="OFFCS_PHOTO"/>
+	    <result property="empNo" column="EMP_NO"/>
+	    <result property="empNm" column="EMP_NM"/>
+	    <result property="empPswd" column="EMP_PSWD"/>
+	    <result property="empRrno" column="EMP_RRNO"/>
+	    <result property="empBrdt" column="EMP_BRDT"/>
+	    <result property="empTelno" column="EMP_TELNO"/>
+	    <result property="empEmlAddr" column="EMP_EML_ADDR"/>
+	    <result property="jncmpYmd" column="JNCMP_YMD"/>
+	    <result property="rsgntnYmd" column="RSGNTN_YMD"/>
+	    <result property="roadNmZip" column="ROAD_NM_ZIP"/>
+	    <result property="roadNmAddr" column="ROAD_NM_ADDR"/>
+	    <result property="daddr" column="DADDR"/>
+	    <result property="empIntrcn" column="EMP_INTRCN"/>
+	    <result property="delYn" column="DEL_YN"/>
+	    <result property="proflPhoto" column="PROFL_PHOTO"/>
+	    <result property="jbgdCd" column="JBGD_CD"/>
+	    <result property="jbgdNm" column="JBGD_NM"/>
+	    <result property="jbttlCd" column="JBTTL_CD"/>
+	    <result property="jbttlNm" column="JBTTL_NM"/>
+	    <result property="deptCd" column="DEPT_CD"/>
+	    <result property="deptNm" column="DEPT_NM"/>
+	    <result property="sexdstnCd" column="SEXDSTN_CD"/>
+	    <result property="enabled" column="ENABLED"/>
+	    <result property="fnstNm" column="FNST_NM"/>
+	    <result property="giveActno" column="GIVE_ACTNO"/>
+	    <result property="empAnslry" column="EMP_ANSLRY"/>
+	    <result property="empBslry" column="EMP_BSLRY"/>
+	    <result property="dsgnYmd" column="DSGN_YMD"/>
+	    <collection property="salaryDetailsDocVOList" resultMap="salaryDetailsDocMap"></collection>
+	</resultMap>
+	
+	<resultMap type="salaryDetailsDocVO" id="salaryDetailsDocMap">
+	    <result property="otmPay" column="OTM_PAY"/>
+	    <result property="holPay" column="HOL_PAY"/>
+	    <result property="nitPay" column="NIT_PAY"/>
+	    <result property="famAlwnc" column="FAM_ALWNC"/>
+	    <result property="trgtDt" column="TRGT_DT"/>
+	    <result property="docNo" column="DOC_NO"/>
+	    <result property="docTtl" column="DOC_TTL"/>
+	    <result property="docCn" column="DOC_CN"/>
+	    <result property="trgtEmpNo" column="TRGT_EMP_NO"/>
+	    <result property="bonus" column="BONUS"/>
+	    <result property="mealCt" column="MEAL_CT"/>
+	    <result property="totGiveAmt" column="TOT_GIVE_AMT"/>
+	    <result property="npn" column="NPN"/>
+	    <result property="hlthinsIrncf" column="HLTHINS_IRNCF"/>
+	    <result property="emplyminsrncIrncf" column="EMPLYMINSRNC_IRNCF"/>
+	    <result property="iaciIrncf" column="IACI_IRNCF"/>
+	    <result property="ecmt" column="ECMT"/>
+	    <result property="llx" column="LLX"/>
+	    <result property="totDdcAmt" column="TOT_DDC_AMT"/>
+	    <result property="realRecptAmt" column="REAL_RECPT_AMT"/>
+	    <result property="htmlCd" column="HTML_CD"/>
+	    <result property="docCd" column="DOC_CD"/>
+	    <result property="drftEmpNo" column="DRFT_EMP_NO"/>
+	</resultMap>
+
+	<select id="getDetailDoc" parameterType="hashMap" resultType="salaryDetailsDocVO">
+		SELECT E.EMP_NO, E.EMP_NM, E.EMP_TELNO
+		     , S.FNST_NM, S.GIVE_ACTNO, S.EMP_BSLRY, S.DSGN_YMD
+		     , DEPT_C.CLSF_NM AS DEPT_NM
+		     , JBGD_C.CLSF_NM AS JBGD_NM
+		     , SDD.OTM_PAY, SDD.HOL_PAY, SDD.NIT_PAY, SDD.FAM_ALWNC
+		     , SDD.MEAL_CT, SDD.BONUS, SDD.TOT_GIVE_AMT
+		     , SDD.NPN, SDD.HLTHINS_IRNCF, SDD.EMPLYMINSRNC_IRNCF
+		     , SDD.IACI_IRNCF, SDD.ECMT, SDD.LLX, SDD.TOT_DDC_AMT
+		     , SDD.REAL_RECPT_AMT, SDD.TRGT_DT
+		     <!-- 연장 근로 시간, 휴일 근로 시간, 야간 근로 시간 -->
+		FROM   EMPLOYEE E INNER JOIN SALARY S ON(E.EMP_NO = S.EMP_NO)
+		                  INNER JOIN SALARY_DETAILS_DOC SDD ON(E.EMP_NO = SDD.TRGT_EMP_NO)
+		                  INNER JOIN COMMON_CODE DEPT_C ON(E.DEPT_CD = DEPT_C.CLSF_CD)
+		                  INNER JOIN COMMON_CODE JBGD_C ON(E.JBGD_CD = JBGD_C.CLSF_CD)
+		WHERE  E.DEL_YN = 'N'
+		AND    SDD.TRGT_DT = #{trgtDt}
+		AND	   E.EMP_NO = #{empNo}
+	</select>
+	
+</mapper>

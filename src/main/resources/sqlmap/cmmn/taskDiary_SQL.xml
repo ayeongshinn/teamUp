@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cmmn.mapper.TaskDiaryMapper">
+
+	<!-- 업무일지 리스트 -->
+	<select id="list" resultType="taskDiaryVO" parameterType="hashMap">
+	    WITH T AS (
+	        SELECT 
+	            ROW_NUMBER() OVER(ORDER BY TD.REG_DT DESC) AS RNUM,
+	            TD.DIARY_NO, 
+	            TD.DIARY_TTL, 
+	            TD.DIARY_CN, 
+	            TD.REG_DT, 
+	            E.EMP_NO, 
+	            E.EMP_NM, 
+	            TD.FILE_GROUP_NO, 
+	            CC_JBGD.CLSF_NM AS JBGD_NM, 
+	            CC_JBTTL.CLSF_NM AS JBTTL_NM, 
+	            CC_DEPT.CLSF_NM AS DEPT_NM  
+	        FROM TASK_DIARY TD
+	        JOIN EMPLOYEE E ON TD.EMP_NO = E.EMP_NO
+	        LEFT JOIN COMMON_CODE CC_JBGD ON E.JBGD_CD = CC_JBGD.CLSF_CD 
+	        LEFT JOIN COMMON_CODE CC_JBTTL ON E.JBTTL_CD = CC_JBTTL.CLSF_CD 
+	        LEFT JOIN COMMON_CODE CC_DEPT ON E.DEPT_CD = CC_DEPT.CLSF_CD 
+	        WHERE 1=1
+	        <choose>
+	            <when test="userJbttlNm == '팀장'">
+	                AND CC_DEPT.CLSF_NM = #{userDeptNm}
+	            </when>
+	            <otherwise>
+	                AND TD.EMP_NO = #{empNo}
+	            </otherwise>
+	        </choose>
+	        <if test="keyword != null and keyword != ''">
+	            <choose>
+	                <when test="searchField == 'titleContent'">
+	                    AND (TD.DIARY_TTL LIKE '%' || #{keyword} || '%' 
+	                         OR TD.DIARY_CN LIKE '%' || #{keyword} || '%')
+	                </when>
+	                <when test="searchField == 'title'">
+	                    AND TD.DIARY_TTL LIKE '%' || #{keyword} || '%'
+	                </when>
+	                <when test="searchField == 'content'">
+	                    AND TD.DIARY_CN LIKE '%' || #{keyword} || '%'
+	                </when>
+	                <when test="searchField == 'writer'">
+	                    AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+	                </when>
+	            </choose>
+	        </if>
+	        <if test="startDate != null and startDate != ''">
+	            AND TD.REG_DT >= #{startDate}
+	        </if>
+	        <if test="endDate != null and endDate != ''">
+	            AND TD.REG_DT &lt;= #{endDate}
+	        </if>
+	    )
+	
+	    SELECT * 
+	    FROM T
+	    WHERE RNUM BETWEEN (#{currentPage} - 1) * 10 + 1 AND #{currentPage} * 10
+	    ORDER BY RNUM ASC 
+	</select>
+	
+	<select id="getTotal" resultType="int" parameterType="hashMap">
+	    SELECT COUNT(*)
+	    FROM TASK_DIARY TD
+	    JOIN EMPLOYEE E ON TD.EMP_NO = E.EMP_NO
+	    LEFT JOIN COMMON_CODE CC_DEPT ON E.DEPT_CD = CC_DEPT.CLSF_CD 
+	    WHERE TD.DEL_YN = 'N'
+	    <choose>
+	        <when test="userJbttlNm == '팀장'">
+	            AND CC_DEPT.CLSF_NM = #{userDeptNm}
+	        </when>
+	        <otherwise>
+	            AND TD.EMP_NO = #{empNo}
+	        </otherwise>
+	    </choose>
+	    <if test="keyword != null and keyword != ''">
+	        <choose>
+	            <when test="searchField == 'titleContent'">
+	                AND (TD.DIARY_TTL LIKE '%' || #{keyword} || '%' 
+	                     OR TD.DIARY_CN LIKE '%' || #{keyword} || '%')
+	            </when>
+	            <when test="searchField == 'title'">
+	                AND TD.DIARY_TTL LIKE '%' || #{keyword} || '%'
+	            </when>
+	            <when test="searchField == 'content'">
+	                AND TD.DIARY_CN LIKE '%' || #{keyword} || '%'
+	            </when>
+	            <when test="searchField == 'writer'">
+	                AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+	            </when>
+	        </choose>
+	    </if>
+	    <if test="startDate != null and startDate != ''">
+	        AND TD.REG_DT >= #{startDate}
+	    </if>
+	    <if test="endDate != null and endDate != ''">
+	        AND TD.REG_DT &lt;= #{endDate}
+	    </if>
+	</select>
+
+	 
+	 <select id="detail" parameterType="String" resultType="taskDiaryVO">
+		   
+			SELECT TD.DIARY_NO, 
+			       TD.DIARY_TTL, 
+			       TD.DIARY_CN, 
+			       TD.REG_DT, 
+			       E.EMP_NO, 
+			       E.EMP_NM, 
+			       FILE_GROUP_NO,
+			       CC_JBGD.CLSF_NM AS JBGD_NM, 
+			       CC_DEPT.CLSF_NM AS DEPT_NM   
+			FROM   TASK_DIARY TD
+			JOIN   EMPLOYEE E ON TD.EMP_NO = E.EMP_NO
+			LEFT JOIN COMMON_CODE CC_JBGD ON E.JBGD_CD = CC_JBGD.CLSF_CD 
+			LEFT JOIN COMMON_CODE CC_DEPT ON E.DEPT_CD = CC_DEPT.CLSF_CD 
+		    WHERE  DIARY_NO = #{diaryNo}
+	 </select>
+	 
+	 <!-- 업무일지 작성하기 -->
+	 <insert id="registPost" parameterType="taskDiaryVO">
+	    INSERT INTO "TEAM2_202403F"."TASK_DIARY" 
+		    (DIARY_NO, DIARY_TTL, DIARY_CN, REG_DT, EMP_NO, DEL_YN)
+		VALUES (
+		    (SELECT 'TD' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(DIARY_NO, 3))), 0) + 1, 4, '0')
+		     FROM "TEAM2_202403F"."TASK_DIARY")
+		    , #{diaryTtl}, #{diaryCn}, SYSDATE, #{empNo}, 'N'
+		)
+	</insert>
+	
+	<!-- 업무일지 삭제 -->
+	<update id="deletePost" parameterType="TaskDiaryVO">
+		  UPDATE  TASK_DIARY
+		  SET 	  DEL_YN = 'Y'
+		  WHERE   DIARY_NO = #{diaryNo}
+	</update>
+	
+	<!-- 업무일지 수정 -->
+	<update id="updatePost" parameterType="taskDiaryVO">
+		UPDATE TASK_DIARY
+		SET DIARY_TTL = #{diaryTtl} , DIARY_CN = #{diaryCn}
+		WHERE DIARY_NO = #{diaryNo}
+	 </update>
+	  
+	  
+	
+
+</mapper>

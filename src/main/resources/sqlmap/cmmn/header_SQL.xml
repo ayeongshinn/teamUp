@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.or.ddit.cmmn.mapper.HeaderMapper">
+    <!-- AttendanceVO 객체에 매핑하기 위한 결과 맵 정의 -->
+    <resultMap type="attendanceVO" id="attendanceMap">
+        <result property="dclzNo" column="DCLZ_NO"/>  			<!-- DCLZ_NO 컬럼을 dclzNo 속성에 매핑 -->
+        <result property="empNo" column="EMP_NO"/>    			<!-- EMP_NO 컬럼을 empNo 속성에 매핑 -->
+        <result property="attendYmd" column="ATTEND_YMD"/>  	<!-- ATTEND_YMD 컬럼을 attendYmd 속성에 매핑 -->
+        <result property="attendTm" column="ATTEND_TM"/>    	<!-- ATTEND_TM 컬럼을 attendTm 속성에 매핑 -->
+        <result property="lvffcTm" column="LVFFC_TM"/>      	<!-- LVFFC_TM 컬럼을 lvffcTm 속성에 매핑 -->
+        <result property="restHr" column="REST_HR"/>        	<!-- REST_HR 컬럼을 restHr 속성에 매핑 -->
+        <result property="workHr" column="WORK_HR"/>        	<!-- WORK_HR 컬럼을 workHr 속성에 매핑 -->
+        <result property="mealHr" column="MEAL_HR"/>        	<!-- MEAL_HR 컬럼을 mealHr 속성에 매핑 -->
+        <result property="ngtwrHr" column="NGTWR_HR"/>      	<!-- NGTWR_HR 컬럼을 ngtwrHr 속성에 매핑 -->
+        <result property="empSttusCd" column="EMP_STTUS_CD"/>   <!-- EMP_STTUS_CD 컬럼을 empSttusCd 속성에 매핑 -->
+        
+        <!-- commonCodeVOList 속성을 commonCodeMap으로 정의된 결과 맵으로 매핑 -->
+        <collection property="commonCodeVOList" resultMap="commonCodeMap"></collection>
+    </resultMap>
+    
+    <!-- CommonCodeVO 객체에 매핑하기 위한 결과 맵 정의 -->
+    <resultMap type="commonCodeVO" id="commonCodeMap">
+        <result property="clsfCd" column="CLSF_CD"/>  			<!-- CLSF_CD 컬럼을 clsfCd 속성에 매핑 -->
+        <result property="clsfNm" column="CLSF_NM"/>  			<!-- CLSF_NM 컬럼을 clsfNm 속성에 매핑 -->
+        <result property="outptSn" column="OUTPT_SN"/>  		<!-- OUTPT_SN 컬럼을 outptSn 속성에 매핑 -->
+        <result property="groupCd" column="GROUP_CD"/>  		<!-- GROUP_CD 컬럼을 groupCd 속성에 매핑 -->
+    </resultMap>
+    
+    <!-- 부서명 및 직책명을 조회하는 SQL 쿼리 -->
+    <select id="getDept" parameterType="String" resultType="commonCodeVO">
+        SELECT CLSF_CD				<!-- 분류 코드 -->
+        	 , CLSF_NM				<!-- 분류 명 -->
+        	 , OUTPT_SN				<!-- 출력 순서 -->
+        	 , GROUP_CD				<!-- 그룹 코드 -->
+        FROM COMMON_CODE			<!-- 공통 코드 테이블 -->
+        WHERE CLSF_CD = #{clsfCd}   <!-- 매개변수 clsfCd를 사용하여 부서 코드 및 직책 코드로 필터링 -->
+    </select>
+    
+    <!-- 사용자의 근태 상태를 조회하는 SQL 쿼리 -->
+    <select id="getEmpSttus" parameterType="String" resultMap="attendanceMap">
+        SELECT A.DCLZ_NO			<!-- 근태 번호 -->
+        	 , A.EMP_NO				<!-- 사원 번호 -->
+        	 , A.ATTEND_YMD			<!-- 출근 일자 -->
+        	 , A.ATTEND_TM			<!-- 출근 시각 -->
+        	 , A.LVFFC_TM			<!-- 퇴근 시각 -->
+             , A.REST_HR			<!-- 휴게 시간 -->
+             , A.WORK_HR			<!-- 근무 시간 -->
+             , A.MEAL_HR			<!-- 식사 시간 -->
+             , A.NGTWR_HR			<!-- 야근 시간 -->
+             , A.EMP_STTUS_CD		<!-- 사원 상태 코드 -->
+             , B.CLSF_NM			<!-- 분류 명 -->
+        FROM ATTENDANCE A			<!-- 근태 테이블 -->
+        INNER JOIN COMMON_CODE B ON A.EMP_STTUS_CD = B.CLSF_CD	<!-- ATTENDANCE 테이블의 EMP_STTUS_CD와 COMMON_CODE 테이블의 CLSF_CD를 기준으로 조인 -->
+        WHERE A.EMP_NO = #{empNo}  								<!-- 매개변수 empNo를 사용하여 사원 번호로 필터링 -->
+          AND A.ATTEND_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')   	<!-- 오늘 날짜로 필터링하여 근태 상태 조회 -->
+    </select>
+</mapper>
+

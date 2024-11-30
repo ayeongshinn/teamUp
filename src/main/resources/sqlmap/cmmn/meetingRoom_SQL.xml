@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.or.ddit.cmmn.mapper.MeetingRoomMapper">
+	
+	<!-- 부서 리스트 조회 (GROUP_CD가 'A17'인 공통 코드 목록을 가져옴) -->
+    <select id="deptList" resultType="commonCodeVO">
+		SELECT CLSF_CD, CLSF_NM, OUTPT_SN, GROUP_CD
+		FROM   COMMON_CODE
+		WHERE  GROUP_CD = 'A17'
+	</select>
+	
+	 <!-- 회의실 리스트 조회 (GROUP_CD가 'A05'인 공통 코드 목록을 가져옴) -->
+	<select id="meetingRoomList" resultType="commonCodeVO">
+		SELECT CLSF_CD, CLSF_NM, OUTPT_SN, GROUP_CD
+		FROM   COMMON_CODE
+		WHERE  GROUP_CD = 'A05'
+	</select>
+	
+	<!-- 회의실 예약 등록 -->
+	<insert id="registRes" parameterType="meetingRoomVO">
+		INSERT INTO MEETINGROOM (RSVT_NO, RSVT_YMD, RSVT_BGNG_TM, RSVT_END_TM, EMP_NO ,MTGROOM_CD, DEL_YN, RSVT_CN)
+		VALUES(
+		  'H' || LPAD(TO_NUMBER(SUBSTR(COALESCE((SELECT MAX(RSVT_NO) FROM MEETINGROOM), 'H0000'), 2)) + 1, 4, '0'),
+		   #{rsvtYmd},
+           #{rsvtBgngTm},
+           #{rsvtEndTm},
+           #{empNo},
+           #{mtgroomCd},
+           'N',
+           #{rsvtCn}
+		)
+	</insert>
+	
+	 <!-- 특정 날짜의 모든 회의실 예약 조회 (조건 : DEL_YN = 'N') -->
+	<select id="getAllReservations" resultType="meetingRoomVO">
+		SELECT MR.RSVT_NO,
+		       MR.RSVT_YMD,
+		       MR.RSVT_BGNG_TM,
+		       MR.RSVT_END_TM,
+		       MR.EMP_NO,
+		       E.EMP_NM,
+		       MR.MTGROOM_CD,
+		       MR.DEL_YN,
+		       MR.RSVT_CN,
+		       CC.CLSF_NM AS DEPT_NAME
+		FROM MEETINGROOM MR
+		JOIN EMPLOYEE E ON MR.EMP_NO = E.EMP_NO
+		LEFT JOIN COMMON_CODE CC ON E.DEPT_CD = CC.CLSF_CD
+		WHERE MR.RSVT_YMD = #{reservationDate}
+		AND MR.DEL_YN = 'N'
+	</select>
+	
+	 <!-- 사원 정보 조회  -->
+	<select id="empSelect" resultType="employeeVO" parameterType="String">
+		SELECT E.EMP_NM, 
+		       (SELECT C.CLSF_NM 
+		        FROM COMMON_CODE C 
+		        WHERE C.CLSF_CD = E.DEPT_CD) AS DEPT_CD
+		FROM EMPLOYEE E
+		WHERE E.EMP_NO = #{empNo}
+	</select>
+	
+	<!-- 회의실 예약 삭제 -->
+	<update id="deleteRes">
+		UPDATE MEETINGROOM
+		   SET DEL_YN = 'Y'
+		WHERE RSVT_NO = #{rsvtNo}
+	</update>
+	
+	<!-- 사원이 예약한 회의실 정보 -->
+	<select id="getEmpReservations" resultType="meetingRoomVO" parameterType="String">
+		SELECT RSVT_NO, RSVT_YMD, RSVT_BGNG_TM
+		     , RSVT_END_TM, EMP_NO, MTGROOM_CD
+		     , DEL_YN, RSVT_CN
+		FROM MEETINGROOM
+		WHERE RSVT_YMD = #{reservationDate}
+		AND DEL_YN = 'N'
+		AND EMP_NO = #{empNo}
+	</select>
+	
+	 <!-- 중복 예약 확인 -->
+	<select id="checkRes" resultType="int" >
+		SELECT COUNT(*)
+		FROM MEETINGROOM
+		WHERE mtgroom_cd = #{mtgroomCd}
+		AND rsvt_ymd = #{rsvtYmd}
+		AND DEL_YN = 'N'
+		AND (
+		  (rsvt_bgng_tm &lt; #{rsvtEndTm} AND rsvt_end_tm &gt; #{rsvtBgngTm})
+		)
+	</select>
+		
+</mapper>

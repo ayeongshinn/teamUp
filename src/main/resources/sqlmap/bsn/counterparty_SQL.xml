@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 거래처용 SQL :: 이재현 -->
+
+<mapper namespace="kr.or.ddit.bsn.mapper.CounterPartyMapper">
+	
+	<!-- 거래처 주소록 -->
+	<select id="counterPartyList" parameterType="hashMap" resultType="counterPartyVO">
+		WITH T AS
+		(
+			SELECT ROW_NUMBER() OVER(ORDER BY CNPT_NO DESC) RNUM,
+				   A.CNPT_NO, A.CMRC_NM, A.RPRSV_NM, A.CNPT_BRNO, A.RPRS_TELNO,
+			       A.CNPT_FXNO, A.CO_ROAD_NM_ZIP, A.FNDN_YMD, A.RMRK_CN,
+			       A.CTRT_CNCLS_YMD, A.CO_ROAD_NM_ADDR, A.CO_DADDR,
+			       A.INDUTY_CD, A.DEL_YN, A.ATRZ_STTUS_CD,
+			       (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = A.INDUTY_CD) INDUTY_NM 
+			FROM COUNTERPARTY A INNER JOIN COMMON_CODE B ON(B.CLSF_CD = A.INDUTY_CD)
+			WHERE A.ATRZ_STTUS_CD = 'A14-001'
+			<if test="category!=null and category!=''">
+				<choose>
+					<when test="category=='rprsvNm'">
+						AND A.RPRSV_NM LIKE '%' || #{keyword} || '%'
+					</when>
+					<when test="category=='cmrcNm'">
+						AND A.CMRC_NM LIKE '%' || #{keyword} || '%'
+					</when>
+				</choose>
+			</if>
+			<if test="category==null or category==''">
+				AND (
+				TO_CHAR(A.RPRSV_NM) LIKE '%' || #{keyword} || '%'
+				OR
+				TO_CHAR(A.CMRC_NM) LIKE '%' || #{keyword} || '%'
+				)
+			</if>
+		)
+		SELECT * FROM T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+	
+	<!-- 전체 행의 수 -->
+	<select id="getTotal" resultType="int">
+		SELECT COUNT (*)
+		FROM COUNTERPARTY
+	</select>
+	
+	<!-- 전체 계약 수 -->
+	<select id="ctrtTotal" resultType="int">
+		SELECT COUNT (*)
+		FROM COUNTERPARTY
+	</select>
+	
+	<!-- 당월 계약 수 -->
+	<select id="ctrtMonth" resultType="int">
+		SELECT COUNT(*) AS contract_count
+		FROM COUNTERPARTY
+		WHERE TO_DATE(CTRT_CNCLS_YMD, 'YYYYMMDD')
+			  BETWEEN TRUNC(SYSDATE, 'MM')
+			  AND LAST_DAY(SYSDATE)
+	</select>
+	
+	<!-- 전월 계약 수 -->
+	<select id="ctrtBeforeMonth" resultType="int">
+		SELECT COUNT(*) AS previous_month
+		FROM COUNTERPARTY
+		WHERE TO_DATE(CTRT_CNCLS_YMD, 'YYYYMMDD') 
+		      BETWEEN TRUNC(ADD_MONTHS(SYSDATE, -1), 'MM') 
+		      AND LAST_DAY(ADD_MONTHS(SYSDATE, -1))
+	</select>
+	
+	<!-- 거래처 등록 실행 -->
+	<insert id="registPost" parameterType="counterPartyVO">
+		INSERT INTO COUNTERPARTY (CNPT_NO, CMRC_NM, RPRSV_NM, CNPT_BRNO, RPRS_TELNO, CNPT_FXNO,
+		                          CO_ROAD_NM_ZIP, FNDN_YMD, RMRK_CN, CTRT_CNCLS_YMD,
+		                          CO_ROAD_NM_ADDR, CO_DADDR, INDUTY_CD, ATRZ_STTUS_CD)
+		VALUES(CNPT_NO(), #{cmrcNm}, #{rprsvNm}, #{cnptBrno}, #{rprsTelno}, #{cnptFxno},
+		       #{coRoadNmZip}, #{fndnYmd}, #{rmrkCn}, #{ctrtCnclsYmd},
+		       #{coRoadNmAddr}, #{coDaddr}, #{indutyCd}, 'A14-003')
+	</insert>
+	
+	<!-- 업종명 리스트 -->
+	<select id="indutynmList" resultType="counterPartyVO">
+		SELECT CLSF_NM INDUTY_NM, CLSF_CD INDUTY_CD FROM COMMON_CODE
+		WHERE GROUP_CD = 'A12'
+	</select>
+	
+	<!-- 거래처 상세조회 -->
+	<select id="detail" parameterType="String" resultType="counterPartyVO">
+		SELECT A.CNPT_NO, A.CMRC_NM, A.RPRSV_NM, A.CNPT_BRNO, A.RPRS_TELNO,
+			   A.CNPT_FXNO, A.CO_ROAD_NM_ZIP, A.FNDN_YMD, A.RMRK_CN,
+			   A.CTRT_CNCLS_YMD, A.CO_ROAD_NM_ADDR, A.CO_DADDR,
+			   A.INDUTY_CD, A.ATRZ_STTUS_CD,
+			   (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = A.INDUTY_CD) INDUTY_NM 
+		FROM COUNTERPARTY A INNER JOIN COMMON_CODE B ON(B.CLSF_CD = A.INDUTY_CD)
+		WHERE CNPT_NO = #{cnptNo}
+	</select>
+	
+	<!-- 거래처 수정 실행 -->
+	<update id="updateCounterParty" parameterType="CounterPartyVO">
+		UPDATE COUNTERPARTY
+		SET CMRC_NM = #{cmrcNm}, RPRSV_NM = #{rprsvNm}, CNPT_BRNO = #{cnptBrno},
+		      RPRS_TELNO = #{rprsTelno}, CNPT_FXNO = #{cnptFxno}, CO_ROAD_NM_ZIP =  #{coRoadNmZip},
+		      FNDN_YMD = #{fndnYmd}, RMRK_CN = #{rmrkCn}, CTRT_CNCLS_YMD = #{ctrtCnclsYmd},
+		      CO_ROAD_NM_ADDR = #{coRoadNmAddr}, CO_DADDR = #{coDaddr}
+		WHERE CNPT_NO = #{cnptNo}
+	</update>
+	
+	<!-- 거래처 삭제 실행 -->
+	<delete id="deletePost" parameterType="counterPartyVO">
+		DELETE FROM COUNTERPARTY
+		WHERE CNPT_NO = #{cnptNo}
+	</delete>
+	
+</mapper>

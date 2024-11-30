@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.hr.mapper.HrVacationMapper">
+	
+	<!-- 휴가 리스트 -->
+	<select id="list" parameterType="hashMap" resultType="hrVacationVO">
+	    WITH LatestVacation AS (
+	        SELECT V.*
+	             , ROW_NUMBER() OVER (PARTITION BY V.EMP_NO ORDER BY V.USE_VCATN_DAY DESC) AS rn
+	        FROM VACATION V
+	    ),
+	    T AS (
+	        SELECT ROW_NUMBER() OVER ( ORDER BY E.EMP_NM ASC ) RNUM
+	         , V.VCATN_NO, V.EMP_NO
+	         , V.BSC_VCATN_DAY_CNT, V.GRNT_VCATN_DAY_CNT, V.USE_VCATN_DAY_CNT
+	         , V.HOLD_VCATN_DAY_CNT, V.FYR_BGNG_YMD, V.FYR_END_YMD, V.VCATN_CD
+	         , E.EMP_NM
+	         , E.DEPT_CD
+	         , C.CLSF_NM AS DEPT_NM
+	        FROM LatestVacation V
+	             INNER JOIN EMPLOYEE E ON (E.EMP_NO = V.EMP_NO)
+	             LEFT JOIN COMMON_CODE C ON (C.CLSF_CD = E.DEPT_CD)
+	        WHERE E.DEL_YN = 'N'
+	          AND V.rn = 1  <!-- 사원의 최신 휴가 데이터만 선택 -->
+	        <if test="deptCd != null and deptCd != '' and deptCd != '전체'">
+	            AND E.DEPT_CD = #{deptCd}
+	        </if>
+	        <if test="keyword != null and keyword != ''">
+	            AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+	        </if>
+	    )
+	    SELECT * FROM T
+	    WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+
+
+	
+	<!-- 전체 행의 수 -->
+	<select id="getTotal" resultType="int" parameterType="hashMap">
+		SELECT COUNT(V.EMP_NO)
+		FROM   VACATION V INNER JOIN EMPLOYEE E ON V.EMP_NO = E.EMP_NO
+		WHERE  E.DEL_YN = 'N'
+			<if test="deptCd != null and deptCd != '' and deptCd != '전체'">
+				AND E.DEPT_CD = #{deptCd}
+			</if>
+			<if test="keyword != null and keyword != '' ">
+		        AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+		    </if>
+	</select>
+	
+	<!-- 보유 휴가일 정렬 이벤트 -->
+	<select id="getSortedVcatDay" parameterType="String" resultType="hrVacationVO">
+	    SELECT HOLD_VCATN_DAY_CNT
+	    FROM   VACATION
+	    ORDER BY HOLD_VCATN_DAY_CNT
+	    <if test="order != null and order != ''">
+	        ${order}
+	    </if>
+	</select>
+	
+	<!-- 특정 사원의 잔여 휴가 정보 -->
+	<select id="lastVcatnDetail" parameterType="String" resultType="hrVacationVO">
+		WITH LatestVacation AS (
+		    SELECT V.*
+		         , ROW_NUMBER() OVER (PARTITION BY V.EMP_NO ORDER BY V.USE_VCATN_DAY DESC) AS rn
+		    FROM VACATION V
+		)
+		SELECT E.EMP_NO, E.EMP_NM, E.DEPT_CD, E.JBGD_CD, E.PROFL_PHOTO
+		     , V.VCATN_NO, V.BSC_VCATN_DAY_CNT, V.GRNT_VCATN_DAY_CNT, V.USE_VCATN_DAY_CNT, V.USE_VCATN_DAY
+		     , V.HOLD_VCATN_DAY_CNT, V.FYR_BGNG_YMD, V.FYR_END_YMD, V.VCATN_CD
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD=E.DEPT_CD) DEPT_NM
+		     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD=E.JBGD_CD) JBGD_NM
+		FROM   EMPLOYEE E
+		       INNER JOIN LatestVacation V ON E.EMP_NO = V.EMP_NO AND V.rn = 1
+		       INNER JOIN COMMON_CODE C ON E.DEPT_CD = C.CLSF_CD
+		WHERE  E.EMP_NO = #{empNo}
+		AND	   E.DEL_YN = 'N'
+	</select>
+	
+	<!-- 휴가 추가 부여하기 -->
+	<insert id="grantVacation" parameterType="hashMap">
+	    INSERT INTO VACATION (
+	        VCATN_NO, EMP_NO, BSC_VCATN_DAY_CNT, GRNT_VCATN_DAY_CNT
+	        , USE_VCATN_DAY_CNT, HOLD_VCATN_DAY_CNT
+	        , FYR_BGNG_YMD, FYR_END_YMD, VCATN_CD, USE_VCATN_DAY
+	    )
+	    VALUES (
+	        vacation_no(), #{empNo}
+	        , (SELECT BSC_VCATN_DAY_CNT FROM (
+	                SELECT BSC_VCATN_DAY_CNT
+	                FROM VACATION
+	                WHERE EMP_NO = #{empNo}
+	                ORDER BY USE_VCATN_DAY DESC
+	            ) WHERE ROWNUM = 1)
+	        , (SELECT GRNT_VCATN_DAY_CNT FROM (
+	                SELECT GRNT_VCATN_DAY_CNT
+	                FROM VACATION
+	                WHERE EMP_NO = #{empNo}
+	                ORDER BY USE_VCATN_DAY DESC
+	            ) WHERE ROWNUM = 1) + #{grntVcatnDayCnt}
+	        , (SELECT USE_VCATN_DAY_CNT FROM (
+	                SELECT USE_VCATN_DAY_CNT
+	                FROM VACATION
+	                WHERE EMP_NO = #{empNo}
+	                ORDER BY USE_VCATN_DAY DESC
+	            ) WHERE ROWNUM = 1)
+	        , (SELECT HOLD_VCATN_DAY_CNT FROM (
+	                SELECT HOLD_VCATN_DAY_CNT
+	                FROM VACATION
+	                WHERE EMP_NO = #{empNo}
+	                ORDER BY USE_VCATN_DAY DESC
+	            ) WHERE ROWNUM = 1) + #{grntVcatnDayCnt}
+	        , TO_CHAR(SYSDATE, 'YYYY') || '0101'
+	        , TO_CHAR(SYSDATE, 'YYYY') || '1231'
+	        , 'A22-006', SYSDATE
+	    )
+	</insert>
+
+	
+	<!-- 휴가 많이 남은 사원 3명 뽑기 -->
+	<select id="holdVcatnTop3" resultType="hrVacationVO">
+		SELECT EMP_NO, EMP_NM, DEPT_CD, DEPT_NM, JBGD_CD, JBGD_NM, HOLD_VCATN_DAY_CNT
+		FROM (
+		    SELECT EMP_NO, EMP_NM, DEPT_CD, DEPT_NM, JBGD_CD, JBGD_NM, HOLD_VCATN_DAY_CNT
+		    FROM (
+		        SELECT E.EMP_NO, E.EMP_NM,
+		               E.DEPT_CD, (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = E.DEPT_CD) DEPT_NM,
+		               E.JBGD_CD, (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD = E.JBGD_CD) JBGD_NM,
+		               V.HOLD_VCATN_DAY_CNT,
+		               ROW_NUMBER() OVER (PARTITION BY E.EMP_NO ORDER BY V.USE_VCATN_DAY DESC) AS RN
+		        FROM   EMPLOYEE E INNER JOIN VACATION V ON E.EMP_NO = V.EMP_NO
+		        WHERE  E.DEL_YN = 'N'
+		    ) T
+		    WHERE T.RN = 1   
+		    ORDER BY T.HOLD_VCATN_DAY_CNT DESC
+		) WHERE ROWNUM &lt;= 3
+	</select>
+	
+</mapper>

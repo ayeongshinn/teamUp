@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.planng.mapper.NoticeMapper">
+
+	<!-- 공지사항 -->
+	<resultMap type="noticeVO" id="noticeMap">
+		<result property="aprvYn" column="APRV_YN"/>
+		<result property="ntcNo" column="NTC_NO"/>
+		<result property="ntcTtl" column="NTC_TTL"/>
+		<result property="ntcCn" column="NTC_CN"/>
+		<result property="empNo" column="EMP_NO"/>
+		<result property="empNm" column="EMP_NM"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="inqCnt" column="INQ_CNT"/>
+		<result property="imprtncYn" column="IMPRTNC_YN"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		
+		<collection property="fileDetailVOList" resultMap="fileDetailMap"></collection>
+	</resultMap>
+	
+	<!-- 파일 상세 -->
+	<resultMap type="fileDetailVO" id="fileDetailMap">
+		<result property="fileSn" column="FILE_SN"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="fileOriginalNm" column="FILE_ORIGINAL_NM"/>
+		<result property="fileSaveNm" column="FILE_SAVE_NM"/>
+		<result property="fileSaveLocate" column="FILE_SAVE_LOCATE"/>
+		<result property="fileSize" column="FILE_SIZE"/>
+		<result property="fileExt" column="FILE_EXT"/>
+		<result property="fileMime" column="FILE_MIME"/>
+		<result property="fileFancysize" column="FILE_FANCYSIZE"/>
+		<result property="fileSaveDate" column="FILE_SAVE_DATE"/>
+		<result property="fileDowncount" column="FILE_DOWNCOUNT"/>
+	</resultMap>
+
+	<!-- 공지 목록(공통 열람 공지)-->
+	<select id="noticeList" resultType="noticeVO" parameterType="HashMap">
+		WITH T AS
+		(
+			SELECT ROW_NUMBER() OVER(ORDER BY S.IMPRTNC_YN DESC, S.RNUM2 DESC) RNUM
+		         , S.RNUM2, S.NTC_NO, S.IMPRTNC_YN, S.NTC_TTL
+		         , S.EMP_NO, S.REG_DT, S.DEL_YN, S.INQ_CNT
+		         , S.EMP_NM, S.FILE_GROUP_NO
+			FROM
+			(
+				SELECT ROW_NUMBER() OVER(ORDER BY REG_DT ASC) RNUM2,
+					  N.NTC_NO, N.IMPRTNC_YN, N.NTC_TTL, N.EMP_NO, N.REG_DT, N.INQ_CNT, N.DEL_YN
+			    	, (SELECT EMP_NM FROM EMPLOYEE WHERE EMP_NO=N.EMP_NO) EMP_NM, N.FILE_GROUP_NO	
+				FROM NOTICE_BOARD N INNER JOIN EMPLOYEE E ON(N.EMP_NO=E.EMP_NO)
+				WHERE N.APRV_YN = 'Y'
+				AND N.DEL_YN = 'N'
+				<!-- 검색 필터 -->
+				<choose>
+					<when test="searchField == 'titleContent'">
+						AND (N.NTC_TTL LIKE '%' || #{keyword} || '%' OR N.NTC_CN LIKE '%' || #{keyword} || '%')
+					</when>
+					<when test="searchField == 'title'">
+						AND N.NTC_TTL LIKE '%' || #{keyword} || '%'
+					</when>
+					<when test="searchField == 'content'">
+						AND N.NTC_CN LIKE '%' || #{keyword} || '%'
+					</when>
+				</choose>
+			) S
+		)
+		
+		SELECT * FROM T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+	
+	<!-- 공지 목록(기획부 열람 공지) -->
+	<select id="noticeListN" resultType="noticeVO" parameterType="HashMap">
+    WITH T AS (
+        SELECT ROW_NUMBER() OVER(ORDER BY S.RNUM2 DESC) RNUM,
+               S.RNUM2, S.NTC_NO, S.IMPRTNC_YN, S.NTC_TTL,
+               S.EMP_NO, S.REG_DT, S.APRV_YN, S.DEL_YN, S.EMP_NM, S.FILE_GROUP_NO
+        FROM (
+            SELECT ROW_NUMBER() OVER(ORDER BY N.REG_DT ASC) RNUM2,
+                   N.NTC_NO, N.IMPRTNC_YN, N.NTC_TTL, N.EMP_NO, N.REG_DT, N.APRV_YN, N.DEL_YN,
+                   E.EMP_NM, N.FILE_GROUP_NO
+            FROM NOTICE_BOARD N
+            JOIN EMPLOYEE E ON N.EMP_NO = E.EMP_NO
+            WHERE N.DEL_YN = 'N'
+            
+            <!-- 사원이 작성한 게시글만 조회 -->
+            <if test="empNo != null and empNo != ''">
+                AND N.EMP_NO = #{empNo}
+            </if>
+            
+            <!-- 기간 필터 -->
+            <if test="startDate != null and startDate != ''">
+                AND N.REG_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND N.REG_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+            </if>
+
+            <!-- 상태 필터 -->
+            <if test="status != null and status != 'all'">
+			    AND N.APRV_YN = #{status}
+			</if>
+
+            <!-- 검색 필터 -->
+            <choose>
+                <when test="searchField == 'titleContent'">
+                    AND (N.NTC_TTL LIKE '%' || #{keyword} || '%' OR N.NTC_CN LIKE '%' || #{keyword} || '%')
+                </when>
+                <when test="searchField == 'title'">
+                    AND N.NTC_TTL LIKE '%' || #{keyword} || '%'
+                </when>
+                <when test="searchField == 'content'">
+                    AND N.NTC_CN LIKE '%' || #{keyword} || '%'
+                </when>
+                <when test="searchField == 'writer'">
+                    AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+                </when>
+            </choose>
+	        ) S
+	    )
+	    SELECT * FROM T
+	    WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+	
+	<!-- 전체 행의 수(공통 열람 공지) -->
+	<select id="getTotalY" resultType="int" parameterType="HashMap">
+		SELECT COUNT(*)
+		FROM NOTICE_BOARD N
+		WHERE N.APRV_YN = 'Y'
+		AND N.DEL_YN = 'N'
+		
+		<if test="aprvYn != null and aprvYn != ''">
+			AND N.APRV_YN = #{aprvYn}
+		</if>
+		
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (N.NTC_TTL LIKE '%' || #{keyword} || '%' OR N.NTC_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND N.NTC_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND N.NTC_CN LIKE '%' || #{keyword} || '%'					
+			</when>
+			<when test="searchField == 'writer'">
+				AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+	</select>
+	
+	<!-- 전체 행의 수(기획부 열람 공지) -->
+	<select id="getTotalN" resultType="int" parameterType="HashMap">
+		SELECT COUNT(N.NTC_NO)
+		FROM NOTICE_BOARD N INNER JOIN EMPLOYEE E ON N.EMP_NO = E.EMP_NO
+		WHERE N.DEL_YN = 'N'
+		
+		<!-- 기간 필터 -->
+		<if test="startDate != null and startDate != ''">
+			AND N.REG_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND N.REG_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+			
+		<!-- 상태 필터 -->
+           <if test="status != null and status != 'all'">
+		    AND N.APRV_YN = #{status}
+		</if>
+
+		<!-- 내가 작성한 게시글 필터링: empNo가 있을 때 적용 -->
+		<if test="empNo != null and empNo != '' and (aprvYn == null or aprvYn == '')">
+			AND N.EMP_NO = #{empNo}
+		</if>
+
+		<!-- 검색 필터 -->
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (N.NTC_TTL LIKE '%' || #{keyword} || '%' OR N.NTC_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND N.NTC_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND N.NTC_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+	</select>
+	
+	<!-- 게시글 등록(기획부 열람 공지)
+	fileGroupNo
+	 1) 값이 있을 때 :첨부파일이 있음
+	 2) 값이 없을 때 :첨부파일이 없음 
+	 -->	
+	<insert id="registNotice" parameterType="noticeVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="ntcNo">
+			SELECT 'NOTICE' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(NTC_NO, 7, 10)))+1), 4, '0')
+			FROM NOTICE_BOARD
+		</selectKey>
+		INSERT INTO NOTICE_BOARD(NTC_NO, NTC_TTL, NTC_CN, EMP_NO, REG_DT, INQ_CNT, IMPRTNC_YN, DEL_YN
+		<if test="fileGroupNo!=null and fileGroupNo!=''">
+		, FILE_GROUP_NO
+		</if>
+		, APRV_YN)
+		VALUES(#{ntcNo}, #{ntcTtl}, #{ntcCn}, #{empNo}, SYSDATE, 0, #{imprtncYn}, 'N'
+		<if test="fileGroupNo!=null and fileGroupNo!=''">
+		, #{fileGroupNo}
+		</if>
+		, 'W')
+	</insert>
+	
+	<!-- 공지 상세 보기(기획부 열람 공지) -->
+	<select id="noticeDetailN" parameterType="String" resultMap="noticeMap">
+		SELECT N.NTC_NO, N.NTC_TTL, N.NTC_CN, N.EMP_NO, E.EMP_NM, N.REG_DT,
+			   N.INQ_CNT, N.IMPRTNC_YN, N.DEL_YN, N.FILE_GROUP_NO, N.APRV_YN,
+			   F.FILE_SN, F.FILE_GROUP_NO, F.FILE_ORIGINAL_NM, F.FILE_SAVE_NM,
+			   F.FILE_SAVE_LOCATE, F.FILE_SIZE, F.FILE_EXT, F.FILE_MIME, F.FILE_FANCYSIZE,
+			   F.FILE_SAVE_DATE, F.FILE_DOWNCOUNT
+		FROM NOTICE_BOARD N
+		JOIN EMPLOYEE E ON (N.EMP_NO = E.EMP_NO)
+		LEFT OUTER JOIN FILE_DETAIL F ON (N.FILE_GROUP_NO = F.FILE_GROUP_NO)
+		WHERE NTC_NO = #{ntcNo}
+	</select>
+	
+	<!-- 공지 상세 보기의 이전 글 조회(기획부 열람 공지) -->
+	<select id="noticeDetailNPrev" parameterType="String" resultType="noticeVO">
+		SELECT NTC_NO, NTC_TTL, NTC_CN, EMP_NO, REG_DT,
+           INQ_CNT, IMPRTNC_YN, DEL_YN, FILE_GROUP_NO, APRV_YN
+	    FROM (
+	        SELECT NTC_NO, NTC_TTL, NTC_CN, EMP_NO, REG_DT,
+	               INQ_CNT, IMPRTNC_YN, DEL_YN, FILE_GROUP_NO, APRV_YN
+	        FROM NOTICE_BOARD
+	        WHERE NTC_NO &lt; #{ntcNo} AND DEL_YN = 'N'
+	        ORDER BY NTC_NO DESC
+	    ) WHERE ROWNUM = 1
+	</select>
+	
+	<!-- 공지 상세 보기의 다음 글 조회(기획부 열람 공지) -->
+	<select id="noticeDetailNNxt" parameterType="String" resultType="noticeVO">
+		SELECT NTC_NO, NTC_TTL, NTC_CN, EMP_NO, REG_DT,
+           INQ_CNT, IMPRTNC_YN, DEL_YN, FILE_GROUP_NO, APRV_YN
+	    FROM (
+	        SELECT NTC_NO, NTC_TTL, NTC_CN, EMP_NO, REG_DT,
+	               INQ_CNT, IMPRTNC_YN, DEL_YN, FILE_GROUP_NO, APRV_YN
+	        FROM NOTICE_BOARD
+	        WHERE NTC_NO > #{ntcNo} AND DEL_YN = 'N'
+	        ORDER BY NTC_NO ASC
+	    ) WHERE ROWNUM = 1
+	</select>
+	
+	<!-- 대기 중인 공지사항 수 가져오기(기획부 열람 공지) -->
+	<select id="getWCnt" resultType="int">
+		SELECT COUNT(*)
+		FROM NOTICE_BOARD
+		WHERE APRV_YN = 'W'
+		AND DEL_YN = 'N'
+	</select>
+	
+	<!-- 사원이 작성한 게시글 수 가져오기(기획부 열람 공지) :: 신아영 -->
+	<select id="getMyNotices" parameterType="String" resultType="int">
+		SELECT COUNT(*)
+		FROM NOTICE_BOARD
+		WHERE EMP_NO = #{empNo}
+		AND DEL_YN = 'N'
+	</select>
+	
+	<!-- 공지사항 수정(기획부 열람 공지)
+	1. 첨부파일을 수정하고자 할 때
+	 - fileGroupNo의 값이 존재
+	 
+	2. 첨부파일을 그대로 둘 때
+	 - fileGroupNo의 값이 없음
+	 
+	 /*
+		 NoticeVO(ntcNo=null, ntcTtl=파일 테스트5, ntcCn=<p>테스트테스트5</p>, empNo=null, regDt=null, regDtStr=null,
+		  inqCnt=0, imprtncYn=N, delYn=null, fileGroupNo=0, aprvYn=null, empNm=null, wCnt=0, 
+		  uploadFile=[파일객체], fileDetailVOList=null, strRegDt=null, rnum=0, rnum2=0)
+	*/
+	 -->
+	<update id="updateNotice" parameterType="noticeVO">
+		UPDATE NOTICE_BOARD
+		SET    NTC_TTL = #{ntcTtl}, NTC_CN = #{ntcCn}, IMPRTNC_YN = #{imprtncYn}
+			 <if test="fileGroupNo != null and fileGroupNo != 0">
+			  	,FILE_GROUP_NO = #{fileGroupNo}
+			 </if>
+		WHERE  NTC_NO = #{ntcNo}
+	</update>
+	
+	<!-- 공지사항 삭제 -->
+	<update id="deleteNotice" parameterType="String">
+		UPDATE NOTICE_BOARD
+		SET DEL_YN = 'Y'
+		WHERE NTC_NO = #{ntcNo}
+	</update>
+	
+	<!-- 조회수 증가 로직 -->
+	<update id="increaseViewCnt" parameterType="String">
+		UPDATE NOTICE_BOARD
+		SET INQ_CNT = INQ_CNT + 1
+		WHERE NTC_NO = #{ntcNo}
+	</update>
+	
+	<!-- 공지사항 상세(전체 열람 공지) -->
+	<select id="noticeDetail" parameterType="String" resultMap="noticeMap">
+		SELECT N.NTC_NO, N.NTC_TTL, N.NTC_CN, N.REG_DT,
+			   N.INQ_CNT, N.IMPRTNC_YN, N.DEL_YN, N.FILE_GROUP_NO, N.APRV_YN,
+			   F.FILE_SN, F.FILE_GROUP_NO, F.FILE_ORIGINAL_NM, F.FILE_SAVE_NM,
+			   F.FILE_SAVE_LOCATE, F.FILE_SIZE, F.FILE_EXT, F.FILE_MIME, F.FILE_FANCYSIZE,
+			   F.FILE_SAVE_DATE, F.FILE_DOWNCOUNT
+		FROM NOTICE_BOARD N LEFT OUTER JOIN FILE_DETAIL F
+		ON (N.FILE_GROUP_NO = F.FILE_GROUP_NO)
+		WHERE NTC_NO = #{ntcNo}
+	</select>
+	
+	<!-- 승인 상태 업데이트 -->
+	<update id="updateAprvStatus" parameterType="noticeVO">
+		UPDATE NOTICE_BOARD
+		SET APRV_YN = #{aprvYn}
+		WHERE NTC_NO = #{ntcNo}
+	</update>
+	
+	<!-- 
+	[이미지 삭제]
+	 fileDetailVOList에 대상이 들어갈것임 
+	 <input type="text" name="fileDetailVOList[0].fileSn" value="1">
+	 <input type="text" name="fileDetailVOList[0].fileGroupNo" value="67">
+	 -->
+	 <delete id="deleteImage" parameterType="fileDetailVO">
+	 	DELETE FROM FILE_DETAIL
+		WHERE FILE_SN=#{fileSn} AND FILE_GROUP_NO = #{fileGroupNo}
+	 </delete>
+</mapper>

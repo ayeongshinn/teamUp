@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.planng.mapper.SurveyMapper">
+	
+	<!-- 설문 목록 -->
+	<select id="surveyList" parameterType="HashMap" resultType="surveyVO">
+		WITH T AS (
+		    SELECT ROW_NUMBER() OVER(ORDER BY S.SRVY_REG_DATE DESC) RNUM,
+		           S.SRVY_NO, S.SRVY_TTL, S.SRVY_CN, E.DEPT_CD, E.EMP_NM, E.JBGD_CD, S.SRVY_REG_DATE, 
+		           S.SRVY_BGNG_DATE, S.SRVY_BGNG_TM, S.SRVY_END_DATE, S.SRVY_END_TM, S.RES_OPEN_YN,
+		           S.ANNMS_YN, S.DEL_YN, S.END_YN, S.SRVY_TARGET
+		    FROM SRVY S 
+		    INNER JOIN EMPLOYEE E ON S.SRVY_EMP_NO = E.EMP_NO
+		    WHERE S.DEL_YN = 'N'
+		    
+		    <!-- 사원이 작성한 게시글만 조회 -->
+            <if test="empNo != null and empNo != ''">
+                AND S.SRVY_EMP_NO = #{empNo}
+            </if>
+		    
+		    <!-- 상태 필터 -->
+	        <if test="status != 'all'">
+	            AND S.END_YN = 
+	            <choose>
+	                <when test="status == 'finished'"> 'Y' </when>
+	                <otherwise> 'N' </otherwise>
+	            </choose>
+	        </if>
+		    
+		    <!-- 검색 필터 -->
+			<choose>
+				<when test="searchField == 'titleContent'">
+					AND (S.SRVY_TTL LIKE '%' || #{keyword} || '%' OR S.SRVY_CN LIKE '%' || #{keyword} || '%')
+				</when>
+				<when test="searchField == 'title'">
+					AND S.SRVY_TTL LIKE '%' || #{keyword} || '%'
+				</when>
+				<when test="searchField == 'content'">
+					AND S.SRVY_CN LIKE '%' || #{keyword} || '%'
+				</when>
+				<when test="searchField == 'writer'">
+					AND E.EMP_NM '%' || #{keyword} || '%'
+				</when>
+			</choose>
+		)
+		SELECT * 
+		FROM T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+
+	<!-- 설문 전체 행의 수 -->
+	<select id="getTotal" parameterType="HashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM SRVY S
+		INNER JOIN EMPLOYEE E ON S.SRVY_EMP_NO = E.EMP_NO
+		WHERE S.DEL_YN = 'N'
+		
+		<!-- 상태 필터 -->
+        <if test="status != 'all'">
+            AND S.END_YN = 
+            <choose>
+                <when test="status == 'finished'"> 'Y' </when>
+                <otherwise> 'N' </otherwise>
+            </choose>
+        </if>
+        
+		<!-- 검색 필터 -->
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (S.SRVY_TTL LIKE '%' || #{keyword} || '%' OR S.SRVY_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND S.SRVY_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND S.SRVY_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND E.EMP_NM '%' || #{keyword} || '%'
+			</when>
+		</choose>
+	</select>
+	
+	<!-- 현재 진행 중인 설문 -->
+	<select id="getActiveSurveys" parameterType="HashMap" resultType="surveyVO">
+		SELECT * FROM (
+			SELECT S.SRVY_NO, S.SRVY_TTL, E.DEPT_CD, E.EMP_NM, E.JBGD_CD, S.SRVY_REG_DATE,
+					S.SRVY_BGNG_DATE, S.SRVY_END_DATE, S.RES_OPEN_YN, S.DEL_YN, S.END_YN
+			FROM SRVY S
+			INNER JOIN EMPLOYEE E ON (S.SRVY_EMP_NO = E.EMP_NO)
+			WHERE S.END_YN = 'N'
+			AND S.DEL_YN = 'N'
+			ORDER BY S.SRVY_REG_DATE DESC
+		)
+		WHERE ROWNUM &lt;= 4
+	</select>
+	
+	<!-- 설문 등록 -->
+	<insert id="registSurvey" parameterType="surveyVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="srvyNo">
+			SELECT 'SRVY' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(SRVY_NO, 5, 10)))+1), 5, '0')
+			FROM SRVY
+		</selectKey>
+		INSERT INTO SRVY(SRVY_NO, SRVY_TTL, SRVY_CN, SRVY_EMP_NO, SRVY_REG_DATE,
+						 SRVY_BGNG_DATE, SRVY_BGNG_TM, SRVY_END_DATE, SRVY_END_TM, RES_OPEN_YN,
+						 ANNMS_YN, DEL_YN, END_YN, SRVY_TARGET)
+		VALUES(#{srvyNo}, #{srvyTtl}, #{srvyCn}, #{srvyEmpNo}, SYSDATE,
+				#{srvyBgngDate}, #{srvyBgngTm}, #{srvyEndDate}, #{srvyEndTm}, #{resOpenYn},
+				#{annmsYn}, 'N', 'N', #{srvyTarget})
+	</insert>
+	
+	<!-- 질문 등록 -->
+	<insert id="insertQuestion" parameterType="surveyQstVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="srvyQstNo">
+			SELECT 'SQST' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(SRVY_QST_NO, 5, 10)))+1), 5, '0')
+			FROM SRVY_QST
+		</selectKey>
+		INSERT INTO SRVY_QST(SRVY_QST_NO, SRVY_NO, QUES_CN, QUES_CD, QUES_EXP)
+		VALUES(#{srvyQstNo}, #{srvyNo}, #{quesCn}, #{quesCd}, #{quesExp})
+	</insert>
+	
+	<!-- 보기 등록 -->
+	<insert id="insertOption" parameterType="surveyOptionVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="optionNo">
+			SELECT 'OPTN' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(OPTION_NO, 5, 10)))+1), 5, '0')
+			FROM SRVY_OPTION
+		</selectKey>
+		INSERT INTO SRVY_OPTION(OPTION_NO, SRVY_QST_NO, SRVY_NO, OPTION_CN)
+		VALUES(#{optionNo}, #{srvyQstNo}, #{srvyNo}, #{optionCn})
+	</insert>
+	
+	<!-- 설문 종료 - 기획부 권한 -->
+	<update id="endSurveysAjax">
+		UPDATE SRVY
+		SET END_YN = 'Y'
+		WHERE SRVY_NO IN
+		<foreach item="srvyNo" collection="list" open="(" separator="," close=")">
+			#{srvyNo}
+		</foreach>
+	</update>
+	
+	<!-- 설문 삭제 - 기획부 권한 -->
+	<update id="deleteSurveysAjax">
+		UPDATE SRVY
+		SET DEL_YN = 'Y'
+		WHERE SRVY_NO IN
+		<foreach item="srvyNo" collection="list" open="(" separator="," close=")">
+			#{srvyNo}
+		</foreach>
+	</update>
+	
+	<!-- 설문 상세 -->
+	<select id="surveyDetail" parameterType="String" resultType="surveyVO">
+		SELECT S.SRVY_NO, S.SRVY_TTL, S.SRVY_CN, S.SRVY_EMP_NO,
+				E.EMP_NM, E.DEPT_CD, E.JBGD_CD,
+				S.SRVY_REG_DATE, S.SRVY_BGNG_DATE, S.SRVY_END_DATE, S.RES_OPEN_YN, S.ANNMS_YN,
+				S.DEL_YN, S.END_YN, S.SRVY_TARGET, S.SRVY_BGNG_TM, S.SRVY_END_TM
+		FROM SRVY S
+		INNER JOIN EMPLOYEE E ON (S.SRVY_EMP_NO = E.EMP_NO)
+		WHERE SRVY_NO = #{srvyNo}
+	</select>
+	
+	<!-- 설문 삭제 -->
+	<update id="deleteSurvey">
+		UPDATE SRVY
+		SET DEL_YN = 'Y'
+		WHERE SRVY_NO = #{srvyNo}
+	</update>
+	
+	<!-- 이전 설문 조회 -->
+	<select id="surveyDetailNPrev" parameterType="String" resultType="surveyVO">
+		SELECT SRVY_NO, SRVY_TTL, SRVY_CN, SRVY_EMP_NO, SRVY_REG_DATE,
+	        	SRVY_BGNG_DATE, SRVY_END_DATE, RES_OPEN_YN, ANNMS_YN, DEL_YN,
+	        	END_YN, SRVY_TARGET, SRVY_BGNG_TM, SRVY_END_TM
+	    FROM (
+	        SELECT SRVY_NO, SRVY_TTL, SRVY_CN, SRVY_EMP_NO, SRVY_REG_DATE,
+	        		SRVY_BGNG_DATE, SRVY_END_DATE, RES_OPEN_YN, ANNMS_YN, DEL_YN,
+	        		END_YN, SRVY_TARGET, SRVY_BGNG_TM, SRVY_END_TM
+	        FROM SRVY
+	        WHERE SRVY_NO &lt; #{srvyNo} AND DEL_YN = 'N'
+	        ORDER BY SRVY_NO DESC
+	    ) WHERE ROWNUM = 1
+	</select>
+	
+	<!-- 다음 설문 조회 -->
+	<select id="surveyDetailNNxt" parameterType="String" resultType="surveyVO">
+		SELECT SRVY_NO, SRVY_TTL, SRVY_CN, SRVY_EMP_NO, SRVY_REG_DATE,
+	        	SRVY_BGNG_DATE, SRVY_END_DATE, RES_OPEN_YN, ANNMS_YN, DEL_YN,
+	        	END_YN, SRVY_TARGET, SRVY_BGNG_TM, SRVY_END_TM
+	    FROM (
+	        SELECT SRVY_NO, SRVY_TTL, SRVY_CN, SRVY_EMP_NO, SRVY_REG_DATE,
+	        		SRVY_BGNG_DATE, SRVY_END_DATE, RES_OPEN_YN, ANNMS_YN, DEL_YN,
+	        		END_YN, SRVY_TARGET, SRVY_BGNG_TM, SRVY_END_TM
+	        FROM SRVY
+	        WHERE SRVY_NO &gt; #{srvyNo} AND DEL_YN = 'N'
+	        ORDER BY SRVY_NO ASC
+	    ) WHERE ROWNUM = 1
+	</select>
+	
+	<resultMap type="surveyQstVO" id="surveyQstMap">
+		<result property="srvyQstNo" column="SRVY_QST_NO"/>
+		<result property="srvyNo" column="SRVY_NO"/>
+		<result property="quesCn" column="QUES_CN"/>
+		<result property="quesCd" column="QUES_CD"/>
+		<result property="quesExp" column="QUES_EXP"/>
+	    <collection property="optionList" resultMap="surveyOptionMap"></collection>
+	</resultMap>
+	
+	<resultMap type="surveyOptionVO" id="surveyOptionMap">
+		<result property="optionNo" column="OPTION_NO"/>
+		<result property="srvyQstNo" column="SRVY_QST_NO"/>
+		<result property="srvyNo" column="SRVY_NO"/>
+		<result property="optionCn" column="OPTION_CN"/>
+	</resultMap>
+	
+	<!-- 질문과 옵션 조회 -->
+	<select id="getSurveyQstOpt" parameterType="String" resultMap="surveyQstMap">
+		SELECT Q.SRVY_QST_NO, Q.QUES_CN, Q.QUES_EXP, Q.QUES_CD, O.OPTION_NO, O.OPTION_CN
+		FROM   SRVY_QST Q
+		LEFT OUTER JOIN SRVY_OPTION O
+		ON (Q.SRVY_QST_NO = O.SRVY_QST_NO)
+		WHERE Q.SRVY_NO = #{srvyNo}
+		ORDER BY O.OPTION_NO
+	</select>
+	
+	<!-- 질문 유형 가져오기 -->
+	<select id="getSurveyQstByNo" resultType="surveyQstVO">
+		SELECT QUES_CD
+		FROM SRVY_QST
+		WHERE SRVY_QST_NO = #{srvyQstNo}
+	</select>
+	
+	<!-- 설문 응답 제출 -->
+	<!-- DESC_ANS 컬럼에는 사용자가 단답형으로 입력한 값 / MULTI_ANS 컬럼에는 optionNo가 들어가야 -->
+	<insert id="insertSurveyAnswer" parameterType="surveyAnsVO">
+		<selectKey resultType="String" order="BEFORE" keyProperty="ansNo">
+			SELECT 'ANS' || LPAD(TO_CHAR(MAX(TO_NUMBER(SUBSTR(ANS_NO, 4, 10)))+1), 7, '0')
+        	FROM SRVY_ANS
+		</selectKey>
+		INSERT INTO SRVY_ANS(ANS_NO, SRVY_NO, SRVY_QST_NO, ANS_EMP_NO, ANS_DATE,
+							 DESC_ANS, MULTI_ANS)
+		VALUES(#{ansNo}, #{srvyNo}, #{srvyQstNo}, #{ansEmpNo}, SYSDATE,
+				#{descAns}, #{multiAns})
+	</insert>
+	
+	<!-- 설문에 참여했는지 확인 -->
+	<select id="getParticipated" parameterType="HashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM SRVY_ANS
+		WHERE SRVY_NO = #{srvyNo}
+		AND ANS_EMP_NO = #{empNo}
+	</select>
+	
+	<!-- 설문에 참여한 인원 구하기 -->
+	<select id="getParticipatedCnt" parameterType="String" resultType="int">
+		SELECT COUNT(DISTINCT ANS_EMP_NO)
+		FROM SRVY_ANS
+		WHERE SRVY_NO = #{srvyNo}
+	</select>
+	
+	<!-- 설문 결과 -->
+	<select id="surveyResult" parameterType="String" resultType="surveyVO">
+		SELECT S.SRVY_NO, S.SRVY_TTL, S.SRVY_CN, S.SRVY_EMP_NO, S.SRVY_REG_DATE,
+				S.SRVY_BGNG_DATE, S.SRVY_END_DATE, S.RES_OPEN_YN, S.ANNMS_YN, S.DEL_YN,
+				S.END_YN, S.SRVY_TARGET, S.SRVY_BGNG_TM, S.SRVY_END_TM,
+				E.EMP_NM
+		FROM 	SRVY S
+		INNER JOIN EMPLOYEE E
+			ON (S.SRVY_EMP_NO = E.EMP_NO)
+		WHERE SRVY_NO = #{srvyNo}
+	</select>
+	
+	<!-- 객관식 응답 가져오기 -->
+	<select id="getMultiAns" parameterType="String" resultType="surveyAnsVO">
+		SELECT A.SRVY_QST_NO, A.MULTI_ANS, COUNT(*) AS ANSWER_CNT,
+				O.OPTION_CN, E.EMP_NM, E.DEPT_CD, E.JBGD_CD
+		FROM SRVY_ANS A
+		INNER JOIN SRVY_OPTION O
+			ON (A.MULTI_ANS = O.OPTION_NO)
+		INNER JOIN EMPLOYEE E
+			ON (A.ANS_EMP_NO = E.EMP_NO)
+		WHERE A.SRVY_NO = #{srvyNo}
+		AND A.MULTI_ANS IS NOT NULL
+		GROUP BY A.SRVY_QST_NO, A.MULTI_ANS, O.OPTION_CN, E.EMP_NM, E.DEPT_CD, E.JBGD_CD
+	</select>
+	
+	<!-- 서술형 응답 가져오기 -->
+	<select id="getDescAns" parameterType="String" resultType="surveyAnsVO">
+		SELECT A.SRVY_QST_NO, A.DESC_ANS, E.EMP_NM, E.DEPT_CD, E.JBGD_CD, COUNT(*) AS ANSWER_CNT
+		FROM SRVY_ANS A
+		INNER JOIN EMPLOYEE E
+			ON (A.ANS_EMP_NO = E.EMP_NO)
+		WHERE A.SRVY_NO = #{srvyNo}
+		AND A.DESC_ANS IS NOT NULL
+		GROUP BY A.SRVY_QST_NO, A.DESC_ANS, E.EMP_NM, E.DEPT_CD, E.JBGD_CD
+	</select>
+	
+	<!-- 전체 응답 수 가져오기 -->
+	<select id="getAllAnsCnt" parameterType="HashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM SRVY_ANS
+		WHERE SRVY_NO = #{srvyNo}
+		AND SRVY_QST_NO = #{srvyQstNo}
+	</select>
+	
+	<!-- 각 설문의 대상자 가져오기 -->
+	<select id="getAllPartici" parameterType="String" resultType="int">
+		SELECT COUNT(*)
+		FROM EMPLOYEE
+		<!-- 부서 대상일 때 -->
+		<if test="srvyTarget != 'A03-006'">
+        	WHERE DEPT_CD = #{srvyTarget}
+        </if>
+	</select>
+	
+	<!-- 설문 수정 처리 -->
+	<!-- <update id="updateSurvey" parameterType="String">
+		UPDATE 
+	</update> -->
+</mapper>

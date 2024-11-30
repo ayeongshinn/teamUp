@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<!-- 
+	[마이바티스] 스프링에서 "_"를 사용한 컬럼명을 사용 시(BOOK 테이블의 BOOK_ID)
+	카멜케이스로 읽어줌(bookId)
+	ex) 테이블 컬러명이 member_id인 경우 jsp화면단에서 이 값을 사용 시 memberId로 사용
+	-->
+	<settings>
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+	</settings>
+	<!-- 자주 사용하는 타입의 별칭을 세팅 -->
+	<typeAliases>
+		
+		<typeAlias type="kr.or.ddit.hr.vo.EmployeeVO" alias="employeeVO" /> <!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.hr.vo.EmpAuthVO" alias="empAuthVO" /> <!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.hr.vo.HrMovementDocVO" alias="hrMovementDocVO" /><!-- 장영원 -->
+		<typeAlias type="kr.or.ddit.hr.vo.HrVacationVO" alias="hrVacationVO" /><!-- 장영원 -->
+		<typeAlias type="kr.or.ddit.hr.vo.VacationDocVO" alias="vacationDocVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.hr.vo.ResignationDocVO" alias="resignationDocVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.hr.vo.SalaryDocVO" alias="salaryDocVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.hr.vo.SalaryDetailsDocVO" alias="salaryDetailsDocVO" /><!-- 정지훈 -->
+		
+		<typeAlias type="kr.or.ddit.cmmn.vo.CommonCodeVO" alias="commonCodeVO" /><!-- 장영원 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.ToDoListVO" alias="toDoListVO" /><!-- 박수빈 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.AttendanceVO" alias="attendanceVO" /><!-- 신아영 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.FileDetailVO" alias="fileDetailVO" /><!--  -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.TaskDiaryVO" alias="taskDiaryVO" /><!-- 박수빈 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.ApprovalDocVO" alias="approvalDocVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.ApprovalLineVO" alias="approvalLineVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.MailDVO" alias="mailDVO" /><!-- 신지 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.MailRVO" alias="mailrVO" /><!-- 신지 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.MeetingRoomVO" alias="meetingRoomVO" /><!-- 김다희 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.DocumentVO" alias="documentVO" /><!-- 장영원 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.DocumentFormVO" alias="documentFormVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.SalaryVO" alias="salaryVO" /><!-- 장영원 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.ApprovalLineCountVO" alias="approvalLineCountVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.cmmn.vo.AlramVO" alias="AlramVO" /><!-- 정지훈 --> <!-- 수정할 것 카멜 표기법으로 수정할 것 -->
+						
+		<typeAlias type="kr.or.ddit.manage.vo.FixturesVO" alias="fixturesVO" /><!-- 김다희 -->
+		<typeAlias type="kr.or.ddit.manage.vo.CarVO" alias="carVO" /><!-- 김다희 -->
+		<typeAlias type="kr.or.ddit.manage.vo.BoardVO" alias="boardVO" /><!-- 신지 -->
+		<typeAlias type="kr.or.ddit.manage.vo.FixturesUseDocVO" alias="fixturesUseDocVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.manage.vo.CarUseDocVO" alias="carUseDocVO" /><!-- 정지훈 -->
+		<typeAlias type="kr.or.ddit.manage.vo.CommentVO" alias="commentVO" /> <!-- 신지 -->
+		<typeAlias type="kr.or.ddit.manage.vo.CarUseLedgerVO" alias="carUseLedgerVO" /> <!-- 김다희 -->		
+		<typeAlias type="kr.or.ddit.manage.vo.FixturesUseLedgerVO" alias="fixturesUseLedgerVO" /> <!-- 김다희 -->
+		
+		<typeAlias type="kr.or.ddit.planng.vo.NoticeVO" alias="noticeVO"/> <!-- 신아영 -->
+		<typeAlias type="kr.or.ddit.planng.vo.CalendarVO" alias="calendarVO"/><!-- 신아영 -->
+		<typeAlias type="kr.or.ddit.planng.vo.SurveyVO" alias="surveyVO"/><!-- 신아영 -->
+		<typeAlias type="kr.or.ddit.planng.vo.SurveyQstVO" alias="surveyQstVO"/><!-- 신아영 -->
+		<typeAlias type="kr.or.ddit.planng.vo.SurveyOptionVO" alias="surveyOptionVO"/><!-- 신아영 -->
+		<typeAlias type="kr.or.ddit.planng.vo.SurveyAnsVO" alias="surveyAnsVO"/><!-- 신아영 -->
+
+		<typeAlias type="kr.or.ddit.bsn.vo.CounterPartyVO" alias="counterPartyVO" /><!-- 이재현 -->
+		<typeAlias type="kr.or.ddit.bsn.vo.CustomerVO" alias="customerVO" /><!-- 이재현 -->
+		<typeAlias type="kr.or.ddit.bsn.vo.BusinessProgressVO" alias="businessProgressVO" /><!-- 이재현 -->
+		<typeAlias type="kr.or.ddit.bsn.vo.DealingsDocVO" alias="dealingsDocVO" /><!-- 정지훈 -->
+		
+	</typeAliases>
+
+</configuration>
+
+
+
+
+
+
+

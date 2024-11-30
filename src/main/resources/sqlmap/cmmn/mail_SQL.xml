@@ -1,0 +1,760 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mappeR.dtd">
+<mapper namespace="kr.or.ddit.cmmn.mapper.MailMapper">
+
+	<resultMap type="mailDVO" id="mailDMap">
+		<id property="mailNo" column="MAIL_NO" />
+		<result property="rnum" column="RNUM" />
+		<result property="mailTtl" column="MAIL_TTL" />
+		<result property="mailCn" column="MAIL_CN" />
+		<result property="dsptchEmpNo" column="DSPTCH_EMP_NO" />
+		<result property="dsptEmpNm" column="DSPT_EMP_NM" />
+		<result property="dsptchDt" column="DSPTCH_DT" />
+		<result property="imprtncYn" column="IMPRTNC_YN" />
+		<result property="prslYn" column="PRSL_YN" />
+		<result property="delYn" column="DEL_YN" />
+		<result property="spamYn" column="SPAM_YN" />
+		<result property="dsptEmpDeptCd" column="DSPT_EMP_DEPT_CD" />
+		<result property="groupList" column="GROUP_LIST" />
+		<result property="dimprtncYn" column="D_IMPRTNC_YN" />
+		<result property="dprslYn" column="D_PRSL_YN" />
+		<result property="ddelYn" column="D_DEL_YN" />
+		<result property="dspamYn" column="D_SPAM_YN" />
+		<result property="fileGroupNo" column="FILE_GROUP_NO" />
+		<collection property="mailRVOList" column="mailNo=MAIL_NO" resultMap="mailRMap"></collection>
+		<collection property="fileDetailVOList" resultMap="fileDetailMap"></collection>
+	</resultMap>
+
+	<resultMap type="mailRVO" id="mailRMap" >
+<!-- 		<id property="mailNo" column="MAIL_NO" /> -->
+		<result property="rcptnSn" column="RCPTN_SN" />
+		<result property="recptnEmpNo" column="RECPTN_EMP_NO" />
+		<result property="recptnEmpNm" column="RECPTN_EMP_NM" />
+		<result property="imprtncYn" column="IMPRTNC_YN" />
+		<result property="prslYn" column="PRSL_YN" />
+		<result property="delYn" column="DEL_YN" />
+		<result property="spamYn" column="SPAM_YN" />
+		<result property="rimprtncYn" column="R_IMPRTNC_YN" />
+		<result property="rprslYn" column="R_PRSL_YN" />
+		<result property="delYnDespatch" column="DEL_YN_DESPATCH" />
+		<result property="rdelYn" column="R_DEL_YN" />
+		<result property="rspamYn" column="R_SPAM_YN" />
+		<result property="recmailaddr" column="RECMAILADDR" />
+		
+	</resultMap>
+	
+	<!-- 파일 상세 -->
+	<resultMap type="fileDetailVO" id="fileDetailMap">
+		<result property="fileSn" column="FILE_SN"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="fileOriginalNm" column="FILE_ORIGINAL_NM"/>
+		<result property="fileSaveNm" column="FILE_SAVE_NM"/>
+		<result property="fileSaveLocate" column="FILE_SAVE_LOCATE"/>
+		<result property="fileSize" column="FILE_SIZE"/>
+		<result property="fileExt" column="FILE_EXT"/>
+		<result property="fileMime" column="FILE_MIME"/>
+		<result property="fileFancysize" column="FILE_FANCYSIZE"/>
+		<result property="fileSaveDate" column="FILE_SAVE_DATE"/>
+		<result property="fileDowncount" column="FILE_DOWNCOUNT"/>
+	</resultMap>
+
+	<!-- 받은메일함 리스트 -->
+	<select id="AllReclist" parameterType="hashMap" resultMap="mailDMap">
+
+		SELECT T.*
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER(ORDER BY DSPTCH_DT DESC) RNUM,
+			D.MAIL_NO, D.MAIL_TTL, D.MAIL_CN, D.DSPTCH_EMP_NO,
+			(SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO)
+			DSPT_EMP_NM,
+			D.DSPTCH_DT, D.IMPRTNC_YN AS D_IMPRTNC_YN,D.FILE_GROUP_NO,
+			D.PRSL_YN AS D_PRSL_YN, D.DEL_YN AS D_DEL_YN, D.SPAM_YN AS D_SPAM_YN,
+			R.RCPTN_SN, R.RECPTN_EMP_NO, R.IMPRTNC_YN AS R_IMPRTNC_YN,
+			R.PRSL_YN AS R_PRSL_YN, R.DEL_YN AS R_DEL_YN, R.SPAM_YN AS R_SPAM_YN
+		FROM MAIL_DISPATCH D
+			INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE R.RECPTN_EMP_NO=#{empNo}
+			AND R.DEL_YN='N'
+			AND D.DSPTCH_EMP_NO != #{empNo}
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="cag == 'imPlMail'">
+			AND D.IMPRTNC_YN = 'Y'
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR D.MAIL_CN LIKE '%' ||
+				#{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+
+		) T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 15) - (15 - 1)
+		AND (#{currentPage} * 15)
+
+	</select>
+	
+	<!-- 안읽은메일함 리스트 -->	
+	<select id="NReadMailList" parameterType="hashMap"
+		resultMap="mailDMap">
+
+		SELECT T.*
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER(ORDER BY DSPTCH_DT DESC) RNUM,
+			D.MAIL_NO, D.MAIL_TTL, D.MAIL_CN, D.DSPTCH_EMP_NO,
+			(SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO)
+			DSPT_EMP_NM,
+			D.DSPTCH_DT, D.IMPRTNC_YN AS D_IMPRTNC_YN,
+			D.PRSL_YN AS D_PRSL_YN, D.DEL_YN AS D_DEL_YN, D.SPAM_YN AS D_SPAM_YN,
+			R.RCPTN_SN, R.RECPTN_EMP_NO, R.IMPRTNC_YN AS R_IMPRTNC_YN,
+			R.PRSL_YN AS R_PRSL_YN, R.DEL_YN AS R_DEL_YN, R.SPAM_YN AS R_SPAM_YN
+		FROM MAIL_DISPATCH D
+			INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE R.RECPTN_EMP_NO=#{empNo}
+			AND R.DEL_YN='N'
+			AND D.DSPTCH_EMP_NO != #{empNo}
+			AND R.PRSL_YN='N'
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR D.MAIL_CN LIKE '%' ||
+				#{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+
+		) T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 20) - (20 - 1)
+		AND (#{currentPage} * 20)
+
+	</select>
+
+	<!-- 즐겨찾기메일함 리스트 -->
+	<select id="bookMarkList" parameterType="hashMap"
+		resultMap="mailDMap">
+
+		SELECT T.*
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER(ORDER BY DSPTCH_DT DESC) RNUM,
+			D.MAIL_NO, D.MAIL_TTL, D.MAIL_CN, D.DSPTCH_EMP_NO,
+			(SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO)
+			DSPT_EMP_NM,
+			D.DSPTCH_DT, D.IMPRTNC_YN AS D_IMPRTNC_YN,
+			D.PRSL_YN AS D_PRSL_YN, D.DEL_YN AS D_DEL_YN, D.SPAM_YN AS D_SPAM_YN,
+			R.RCPTN_SN, R.RECPTN_EMP_NO, R.IMPRTNC_YN AS R_IMPRTNC_YN,
+			R.PRSL_YN AS R_PRSL_YN, R.DEL_YN AS R_DEL_YN, R.SPAM_YN AS R_SPAM_YN
+		FROM MAIL_DISPATCH D
+			INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE R.RECPTN_EMP_NO=#{empNo}
+			AND R.DEL_YN='N'
+			AND R.SPAM_YN='Y'
+
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR D.MAIL_CN LIKE '%' ||
+				#{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+
+		) T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 20) - (20 - 1)
+		AND (#{currentPage} * 20)
+
+	</select>
+
+	<!-- 나에게보낸 메일함 리스트 -->
+	<select id="toMeList" parameterType="hashMap" resultMap="mailDMap">
+
+		SELECT T.*
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER(ORDER BY DSPTCH_DT DESC) RNUM,
+			D.MAIL_NO, D.MAIL_TTL, D.MAIL_CN, D.DSPTCH_EMP_NO,
+			(SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO)
+			DSPT_EMP_NM,
+			D.DSPTCH_DT, D.IMPRTNC_YN AS D_IMPRTNC_YN,
+			D.PRSL_YN AS D_PRSL_YN, D.DEL_YN AS D_DEL_YN, D.SPAM_YN AS D_SPAM_YN,
+			R.RCPTN_SN, R.RECPTN_EMP_NO, R.IMPRTNC_YN AS R_IMPRTNC_YN,
+			R.PRSL_YN AS R_PRSL_YN, R.DEL_YN AS R_DEL_YN, R.SPAM_YN AS R_SPAM_YN
+		FROM MAIL_DISPATCH D
+			INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE R.RECPTN_EMP_NO=#{empNo}
+			AND D.DSPTCH_EMP_NO=#{empNo}
+			AND R.DEL_YN='N'
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR D.MAIL_CN LIKE '%' ||
+				#{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+
+		) T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 20) - (20 - 1)
+		AND (#{currentPage} * 20)
+
+	</select>
+	
+	
+	<!-- 받은 메일함 토탈 -->
+	<select id="getTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM MAIL_DISPATCH D INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE R.RECPTN_EMP_NO=#{empNo}
+			AND R.DEL_YN='N'
+			AND D.DSPTCH_EMP_NO!= #{empNo}
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="cag =='imPlMail'">
+			AND D.IMPRTNC_YN = 'Y'
+		</if>
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR
+				D.MAIL_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+	</select>
+
+	<!-- 안읽은 메일함 토탈 -->
+	<select id="getNReadMailTotal" parameterType="hashMap"
+		resultType="int">
+		SELECT COUNT(*)
+		FROM MAIL_DISPATCH D INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE R.RECPTN_EMP_NO=#{empNo}
+			AND R.DEL_YN='N'
+			AND D.DSPTCH_EMP_NO!= #{empNo}
+			AND R.PRSL_YN='N'
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR
+				D.MAIL_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+	</select>
+
+	<!-- 내게쓴 메일함 토탈 -->
+	<select id="gettoMeTotal" parameterType="hashMap"
+		resultType="int">
+		SELECT COUNT(*)
+		FROM MAIL_DISPATCH D INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE R.RECPTN_EMP_NO=#{empNo}
+			AND R.DEL_YN='N'
+			AND D.DSPTCH_EMP_NO=#{empNo}
+
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR
+				D.MAIL_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+	</select>
+
+	<!-- 즐겨착기 메일함 토탈 -->
+	<select id="getBMTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM MAIL_DISPATCH D INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE R.RECPTN_EMP_NO=#{empNo}
+			AND R.DEL_YN='N'
+			AND R.SPAM_YN='Y'
+			AND R.RECPTN_EMP_NO != #{empNo}
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR
+				D.MAIL_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+	</select>
+
+	<!-- 보낸 메일함 토탈 -->
+	<select id="getSendTotal" parameterType="hashMap"
+		resultType="int">
+		SELECT COUNT(*)
+		FROM MAIL_DISPATCH D
+			INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE
+			D.DSPTCH_EMP_NO=#{empNo}
+			AND D.DEL_YN='N'
+			AND R.RECPTN_EMP_NO != #{empNo}
+
+		<if test="startDate != null and startDate != ''">
+			AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR D.MAIL_CN LIKE '%' ||
+				#{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+	</select>
+
+	<!-- 보낸메일함리스트 -->
+	<select id="sendList" parameterType="hashMap" resultMap="mailDMap">
+	    SELECT T.*
+	    FROM (
+	        SELECT 
+	            ROW_NUMBER() OVER(ORDER BY D.DSPTCH_DT DESC) AS RNUM,
+	            D.MAIL_NO, 
+	            D.MAIL_TTL, 
+	            D.MAIL_CN, 
+	            D.DSPTCH_EMP_NO,
+	            (SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO) AS DSPT_EMP_NM,
+	            D.DSPTCH_DT, D.FILE_GROUP_NO,
+	            D.IMPRTNC_YN AS D_IMPRTNC_YN,
+	            D.PRSL_YN AS D_PRSL_YN, 
+	            D.DEL_YN AS D_DEL_YN, 
+	            D.SPAM_YN AS D_SPAM_YN,
+	            R.RCPTN_SN, R.RECPTN_EMP_NO, R.IMPRTNC_YN AS R_IMPRTNC_YN,
+    			(SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = R.RECPTN_EMP_NO) RECPTN_EMP_NM,
+				R.PRSL_YN AS R_PRSL_YN, R.DEL_YN AS R_DEL_YN, R.SPAM_YN AS R_SPAM_YN
+    		FROM MAIL_DISPATCH D 
+    			INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+	        WHERE 
+	            D.DSPTCH_EMP_NO = #{empNo} 
+	        AND D.DEL_YN = 'N' 
+	        AND D.DSPTCH_DT = (
+	                SELECT MAX(D2.DSPTCH_DT) 
+	                FROM MAIL_DISPATCH D2 
+	                WHERE D2.MAIL_TTL = D.MAIL_TTL 
+	                  AND D2.DSPTCH_EMP_NO = #{empNo} 
+	                  AND D2.DEL_YN = 'N'
+	            )
+	        <if test="startDate != null and startDate != ''">
+				AND D.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+			</if>
+			<if test="endDate != null and endDate != ''">
+				AND D.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+			</if>
+
+	        <choose>
+	            <when test="searchField == 'titleContent'">
+	                AND (D.MAIL_TTL LIKE '%' || #{keyword} || '%' OR D.MAIL_CN LIKE '%' || #{keyword} || '%')
+	            </when>
+	            <when test="searchField == 'title'">
+	                AND D.MAIL_TTL LIKE '%' || #{keyword} || '%'
+	            </when>
+	            <when test="searchField == 'content'">
+	                AND D.MAIL_CN LIKE '%' || #{keyword} || '%'
+	            </when>
+	            <when test="searchField == 'writer'">
+	                AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+	            </when>
+	        </choose>
+	    ) T
+	    WHERE T.RNUM BETWEEN (#{currentPage} * 15) - 14 AND (#{currentPage} * 15)
+	</select>
+
+	<!-- 삭제한 메일함  -->
+	<select id="delList" parameterType="hashMap"
+		resultMap="mailDMap">
+		SELECT T.*
+		FROM
+		(
+		SELECT
+			ROW_NUMBER() OVER(ORDER BY MD.DSPTCH_DT DESC) AS RNUM,
+			MD.MAIL_NO,
+			MD.MAIL_TTL,
+			MD.DSPTCH_DT,
+			MR.RCPTN_SN,
+			MR.RECPTN_EMP_NO,
+			MD.DSPTCH_EMP_NO,
+			CASE
+			WHEN MR.RECPTN_EMP_NO = #{empNo} THEN E2.EMP_NM ELSE NULL 
+			END AS DSPT_EMP_NM,
+			CASE
+			WHEN MD.DSPTCH_EMP_NO = #{empNo} THEN E3.EMP_EML_ADDR ELSE NULL
+			END AS RECMAILADDR
+		FROM MAIL_DISPATCH MD
+			JOIN MAIL_RECEPTION MR ON MD.MAIL_NO = MR.MAIL_NO
+			JOIN EMPLOYEE E ON MD.DSPTCH_EMP_NO = E.EMP_NO OR MR.RECPTN_EMP_NO = E.EMP_NO
+			LEFT JOIN EMPLOYEE E2 ON MD.DSPTCH_EMP_NO = E2.EMP_NO
+			LEFT JOIN EMPLOYEE E3 ON MR.RECPTN_EMP_NO = E3.EMP_NO
+		WHERE E.EMP_NO = #{empNo}
+			AND (MD.DEL_YN = 'Y' OR MR.DEL_YN = 'Y')
+
+		<if test="startDate != null and startDate != ''">
+			AND MD.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND MD.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (MD.MAIL_TTL LIKE '%' || #{keyword} || '%' OR MD.MAIL_CN LIKE '%'
+				|| #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND MD.MAIL_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND MD.MAIL_CN LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+		) T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 20) - (20 - 1)
+		AND (#{currentPage} * 20)
+	</select>
+	
+	<!-- 휴지통 토탈 -->
+	<select id="getDelTotal" parameterType="hashMap"
+		resultType="int">
+		SELECT COUNT(*)
+		FROM (
+			SELECT
+				ROW_NUMBER() OVER(ORDER BY MD.DSPTCH_DT DESC) AS RNUM,
+				MD.MAIL_NO,
+				MD.MAIL_TTL,
+				MD.DSPTCH_DT,
+				MR.RCPTN_SN,
+				MR.RECPTN_EMP_NO,
+				MD.DSPTCH_EMP_NO,
+			CASE
+			WHEN MR.RECPTN_EMP_NO = #{empNo} THEN E2.EMP_NM ELSE NULL END AS DSPTCH_EMP_NM,
+			CASE
+			WHEN MD.DSPTCH_EMP_NO = #{empNo} THEN E3.EMP_EML_ADDR ELSE NULL END AS RECMAILADDR
+			FROM MAIL_DISPATCH MD
+				JOIN MAIL_RECEPTION MR ON MD.MAIL_NO = MR.MAIL_NO
+				JOIN EMPLOYEE E ON MD.DSPTCH_EMP_NO = E.EMP_NO OR MR.RECPTN_EMP_NO = E.EMP_NO
+				LEFT JOIN EMPLOYEE E2 ON MD.DSPTCH_EMP_NO = E2.EMP_NO
+				LEFT JOIN EMPLOYEE E3 ON MR.RECPTN_EMP_NO = E3.EMP_NO
+			WHERE E.EMP_NO = #{empNo}
+				AND (MD.DEL_YN = 'Y' OR MR.DEL_YN = 'Y')
+				<if test="startDate != null and startDate != ''">
+					AND MD.DSPTCH_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+				</if>
+				<if test="endDate != null and endDate != ''">
+					AND MD.DSPTCH_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+				</if>
+		
+				<choose>
+					<when test="searchField == 'titleContent'">
+						AND (MD.MAIL_TTL LIKE '%' || #{keyword} || '%' OR MD.MAIL_CN LIKE '%'
+						|| #{keyword} || '%')
+					</when>
+					<when test="searchField == 'title'">
+						AND MD.MAIL_TTL LIKE '%' || #{keyword} || '%'
+					</when>
+					<when test="searchField == 'content'">
+						AND MD.MAIL_CN LIKE '%' || #{keyword} || '%'
+					</when>
+					<when test="searchField == 'writer'">
+						AND DSPT_EMP_NM LIKE '%' || #{keyword} || '%'
+					</when>
+				</choose>
+			)
+	</select>
+
+	<!-- 보낸메일삭제 -->
+	<!-- 1. 보낸 메일함에서 특정 보낸 메일(MAIL_RECEPTION)을 선택(RCPTN_SN) 2. DEL_YN_DESPATCH 
+		컬럼의 값을 'Y' 3. 휴지통에서 살리면 DEL_YN_DESPATCH 컬럼의 값을 'N' -->
+	<update id="dmailDelete" parameterType="hashMap">
+		UPDATE MAIL_DISPATCH
+		SET
+		DEL_YN='Y'
+		WHERE MAIL_NO =#{mailNo}
+
+	</update>
+
+
+	<!-- 받은 메일삭제 -->
+	<!-- 1. 수신 메일함에서 특정 보낸 메일(MAIL_RECEPTION)을 선택(RCPTN_SN) 2. DEL_YN 컬럼의 값을 
+		'Y' 3. 휴지통에서 살리면 DEL_YN 컬럼의 값을 'N' -->
+	<update id="rmailDelete" parameterType="hashMap">
+		UPDATE MAIL_RECEPTION
+		SET
+		DEL_YN='Y'
+		WHERE RCPTN_SN=#{rcptnSn}
+		AND RECPTN_EMP_NO=#{empNo}
+	</update>
+
+	<!-- 보낸메일삭제취소 -->
+	<update id="setDmailDelN" parameterType="hashMap">
+		UPDATE MAIL_DISPATCH
+		SET
+		DEL_YN='N'
+		WHERE MAIL_NO =#{mailNo}
+
+	</update>
+
+	<!-- 받은메일삭제취소 -->
+	<update id="setRmailDelN" parameterType="hashMap">
+		UPDATE MAIL_RECEPTION
+		SET DEL_YN='N'
+		WHERE RCPTN_SN=#{rcptnSn}
+	</update>
+
+
+	<!-- 부서코드 받기 -->
+	<select id="getEeptCd" parameterType="String" resultType="employeeVO">
+		SELECT EMP_NO,EMP_NM,JBGD_CD
+		FROM EMPLOYEE
+		WHERE DEPT_CD=#{DeptCd}
+			AND DEL_YN='N'
+		ORDER BY JBGD_CD DESC
+	</select>
+
+	<!-- 사원받기 -->
+	<select id="getEmp" parameterType="String" resultType="employeeVO">
+		SELECT EMP_NO, EMP_NM, JBGD_CD
+		FROM EMPLOYEE
+		WHERE EMP_NO = #{empNo}
+	</select>
+
+	<!-- 보낸메일 등록 -->
+	<insert id="registDmail" parameterType="hashMap">
+		insert into MAIL_DISPATCH (MAIL_NO, MAIL_TTL, MAIL_CN, DSPTCH_EMP_NO, DSPTCH_DT, IMPRTNC_YN, PRSL_YN, DEL_YN,FILE_GROUP_NO)
+		values(#{mailNo},#{mailTtl},#{mailCn},#{dsptchEmpNo},SYSDATE,#{imprtncYn},'N','N',#{fileGroupNo,jdbcType=INTEGER})
+	</insert>
+
+	<!-- 받은메일 등록 -->
+	<insert id="registRmail" parameterType="hashMap">
+		insert into
+		MAIL_RECEPTION (RCPTN_SN, MAIL_NO, RECPTN_EMP_NO, IMPRTNC_YN, PRSL_YN,
+		DEL_YN)
+		values(#{rcptnSn},#{mailNo},#{recptnEmpNo},#{imprtncYn},'N','N')
+	</insert>
+
+	<!-- 메일번호만들기 -->
+	<select id="getMailNo" resultType="String">
+		SELECT 'm' ||
+		TO_CHAR(TO_NUMBER(SUBSTR(MAIL_NO, 2)) + 1, 'FM00000000') AS
+		NEW_MAIL_NO
+		FROM (SELECT MAX(MAIL_NO) AS MAIL_NO FROM MAIL_DISPATCH)
+	</select>
+
+	<!-- 수신메일 번호 만들기 -->
+	<select id="getRcptnSn" resultType="int">
+		SELECT NVL(MAX(RCPTN_SN), 0) + 1 As RCPTN_SN FROM MAIL_RECEPTION
+	</select>
+
+	<!-- 읽음 처리 -->
+	<update id="setPrsY" parameterType="hashMap">
+		UPDATE MAIL_RECEPTION
+		SET
+		PRSL_YN='Y'
+		WHERE RCPTN_SN=#{rcptnSn}
+	</update>
+
+	<!-- 즐겨찾기 -->
+	<update id="setRspamY" parameterType="hashMap">
+		UPDATE MAIL_RECEPTION
+		SET
+		SPAM_YN='Y'
+		WHERE RCPTN_SN=#{rcptnSn}
+	</update>
+	
+	<!-- 즐찾 취소 -->
+	<update id="setRspamN" parameterType="hashMap">
+		UPDATE MAIL_RECEPTION
+		SET
+		SPAM_YN='N'
+		WHERE RCPTN_SN=#{rcptnSn}
+	</update>
+	
+	
+	<!-- 받은메일 디테일 -->
+	<select id="rMailDetele" parameterType="hashMap" resultMap="mailDMap"> 
+		SELECT ROW_NUMBER() OVER(ORDER BY DSPTCH_DT DESC) RNUM,
+			D.MAIL_NO, D.MAIL_TTL, D.MAIL_CN, D.DSPTCH_EMP_NO, 
+			(SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO) DSPT_EMP_NM, 
+			(SELECT B.DEPT_CD FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO) DSPT_EMP_DEPT_CD, 
+			D.DSPTCH_DT, D.IMPRTNC_YN AS D_IMPRTNC_YN, D.FILE_GROUP_NO,
+			D.PRSL_YN AS D_PRSL_YN, D.DEL_YN AS D_DEL_YN, D.SPAM_YN AS D_SPAM_YN,
+			R.RCPTN_SN, R.RECPTN_EMP_NO, R.IMPRTNC_YN AS R_IMPRTNC_YN, 
+			R.PRSL_YN AS R_PRSL_YN, R.DEL_YN AS R_DEL_YN, 
+			R.SPAM_YN AS R_SPAM_YN 
+		FROM MAIL_DISPATCH D INNER JOIN MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE D.MAIL_NO=#{mailNo} 
+			AND R.RCPTN_SN=#{rcptnSn} 
+	</select>
+	
+	
+	
+	<!-- 보낸메일 디테일 -->
+	<select id="DMailDetail" parameterType="hashMap" resultMap="mailDMap"> 
+		SELECT 
+		    ROW_NUMBER() OVER(ORDER BY D.DSPTCH_DT DESC) AS RNUM,
+		    D.MAIL_NO, 
+		    D.MAIL_TTL, 
+		    D.MAIL_CN, 
+		    D.DSPTCH_EMP_NO, 
+		    (SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO) AS DSPT_EMP_NM, 
+		    (SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = R.RECPTN_EMP_NO) AS RECPTN_EMP_NM, 
+		    (SELECT B.DEPT_CD FROM EMPLOYEE B WHERE B.EMP_NO = D.DSPTCH_EMP_NO) AS DSPT_EMP_DEPT_CD, 
+		    D.DSPTCH_DT, 
+		    D.IMPRTNC_YN AS D_IMPRTNC_YN, 
+		    D.PRSL_YN AS D_PRSL_YN, 
+		    D.DEL_YN AS D_DEL_YN, 
+		    D.SPAM_YN AS D_SPAM_YN, 
+		    D.FILE_GROUP_NO,
+		    R.RCPTN_SN, 
+		    R.RECPTN_EMP_NO, 
+		    R.IMPRTNC_YN AS R_IMPRTNC_YN, 
+		    R.PRSL_YN AS R_PRSL_YN, 
+		    R.DEL_YN AS R_DEL_YN, 
+		    R.SPAM_YN AS R_SPAM_YN
+		FROM 
+		    MAIL_DISPATCH D 
+		INNER JOIN 
+		    MAIL_RECEPTION R ON D.MAIL_NO = R.MAIL_NO
+		WHERE 
+		    D.MAIL_NO = #{mailNo}
+
+	</select>
+
+
+	<select id="getFileDetails" parameterType="int" resultType="fileDetailVO">
+		SELECT FILE_SN, FILE_GROUP_NO, FILE_ORIGINAL_NM, FILE_SAVE_NM, FILE_SAVE_LOCATE,
+		    FILE_SIZE, FILE_EXT, FILE_MIME, FILE_FANCYSIZE, FILE_SAVE_DATE, FILE_DOWNCOUNT
+		FROM FILE_DETAIL
+		WHERE FILE_GROUP_NO=#{fileGroupNo}
+	</select>
+
+
+
+</mapper>

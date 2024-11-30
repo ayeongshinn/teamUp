@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.manage.mapper.SugestBoardMapper">
+
+	<resultMap type="kr.or.ddit.manage.vo.BoardVO" id="boardResultMap">
+		<result property="bbsNo" column="BBS_NO"/>
+		<result property="bbsTtl" column="BBS_TTL"/>
+		<result property="empNo" column="EMP_NO"/>
+		<result property="bbsCn" column="BBS_CN"/>
+		<result property="regDt" column="REG_DT"/>
+		<result property="inqCnt" column="INQ_CNT"/>
+		<result property="delYn" column="DEL_YN"/>
+		<result property="rcritSttusCd" column="RCRIT_STTUS_CD"/>
+		<result property="delngSttusCd" column="DELNG_STTUS_CD"/>
+		<result property="bbsCd" column="BBS_CD"/>
+		<result property="sugestClsfCd" column="SUGEST_CLSF_CD"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="processSttusCd" column="PROCESS_STTUS_CD"/>
+		
+		<collection property="fileDetailVOList" resultMap="fileDetailMap"></collection>
+	</resultMap>
+	
+	<!-- 파일 상세 -->
+	<resultMap type="fileDetailVO" id="fileDetailMap">
+		<result property="fileSn" column="FILE_SN"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="fileOriginalNm" column="FILE_ORIGINAL_NM"/>
+		<result property="fileSaveNm" column="FILE_SAVE_NM"/>
+		<result property="fileSaveLocate" column="FILE_SAVE_LOCATE"/>
+		<result property="fileSize" column="FILE_SIZE"/>
+		<result property="fileExt" column="FILE_EXT"/>
+		<result property="fileMime" column="FILE_MIME"/>
+		<result property="fileFancysize" column="FILE_FANCYSIZE"/>
+		<result property="fileSaveDate" column="FILE_SAVE_DATE"/>
+		<result property="fileDowncount" column="FILE_DOWNCOUNT"/>
+	</resultMap>
+
+	<!-- 건의 사항 리스트 -->
+	<select id="list" parameterType="hashMap" resultType="boardVO">
+		WITH T AS (
+			SELECT ROW_NUMBER() OVER(ORDER BY B.RNUM2 DESC) AS RNUM,
+		           B.RNUM2, B.BBS_NO, B.BBS_TTL, B.EMP_NO, B.BBS_CN, B.REG_DT, 
+		           B.INQ_CNT, B.DEL_YN, B.RCRIT_STTUS_CD, B.DELNG_STTUS_CD, 
+		           B.BBS_CD, B.SUGEST_CLSF_CD, B.FILE_GROUP_NO, E.EMP_NM,B.PROCESS_STTUS_CD
+				FROM (
+					SELECT ROW_NUMBER() OVER(ORDER BY REG_DT ASC) AS RNUM2, 
+		               N.BBS_NO, N.BBS_TTL, N.EMP_NO, N.BBS_CN, N.REG_DT, N.INQ_CNT, N.DEL_YN, 
+		               N.RCRIT_STTUS_CD, N.DELNG_STTUS_CD, N.BBS_CD, N.SUGEST_CLSF_CD, N.FILE_GROUP_NO,N.PROCESS_STTUS_CD
+					FROM BOARD N 
+					WHERE N.BBS_CD='A02-002'
+					AND DEL_YN='N'
+					
+					<if test="startDate != null and startDate != ''">
+						AND N.REG_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+					</if>
+					<if test="endDate != null and endDate != ''">
+						AND N.REG_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+					</if>
+					
+					<choose>
+						<when test="searchField == 'titleContent'">
+							AND (N.BBS_TTL LIKE '%' || #{keyword} || '%' OR N.BBS_CN LIKE '%' || #{keyword} || '%')
+						</when>
+						<when test="searchField == 'title'">
+							AND N.BBS_TTL LIKE '%' || #{keyword} || '%'
+						</when>
+						<when test="searchField == 'content'">
+							AND N.BBS_CN LIKE '%' || #{keyword} || '%'
+						</when>
+						<when test="searchField == 'writer'">
+							AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+						</when>
+					</choose>
+				) B
+				INNER JOIN EMPLOYEE E ON B.EMP_NO = E.EMP_NO
+		)
+		
+		SELECT * FROM T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+
+	</select>
+	
+	<!-- 게시글 카운트 -->
+	<select id="getTotal" resultType="int" parameterType="HashMap">
+		SELECT COUNT(*)
+		FROM BOARD N 
+		 	INNER JOIN EMPLOYEE E ON N.EMP_NO = E.EMP_NO
+		WHERE N.BBS_CD='A02-002'
+		 	AND N.DEL_YN='N'
+		
+		<if test="startDate != null and startDate != ''">
+			AND N.REG_DT &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND N.REG_DT &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+		
+		<choose>
+			<when test="searchField == 'titleContent'">
+				AND (N.BBS_TTL LIKE '%' || #{keyword} || '%' OR N.BBS_CN LIKE '%' || #{keyword} || '%')
+			</when>
+			<when test="searchField == 'title'">
+				AND N.BBS_TTL LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'content'">
+				AND N.BBS_CN LIKE '%' || #{keyword} || '%'
+			</when>
+			<when test="searchField == 'writer'">
+				AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+			</when>
+		</choose>
+		
+	</select>
+	
+	<!-- 카테고리별 리스트 -->
+	<select id="cagList" parameterType="hashMap" resultType="boardVO">
+		SELECT T.*
+		FROM
+		(
+		SELECT ROW_NUMBER() OVER(ORDER BY REG_DT DESC) RNUM
+		, BBS_NO, BBS_TTL, EMP_NO, BBS_CN, REG_DT, INQ_CNT, DEL_YN
+		, RCRIT_STTUS_CD, DELNG_STTUS_CD, BBS_CD, SUGEST_CLSF_CD, FILE_GROUP_NO,PROCESS_STTUS_CD
+		FROM BOARD
+		WHERE BBS_CD='A02-002'
+		AND DEL_YN='N'
+		) T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1)
+		AND (#{currentPage} * 10)
+		AND SUGEST_CLSF_CD=#{sugestClsfCd}
+		
+	</select>
+
+	<!-- 조회수 올리기 -->
+	<update id="countUp" parameterType="hashMap">
+		UPDATE BOARD
+		SET INQ_CNT =INQ_CNT+1
+		WHERE BBS_NO= #{bbsNo}
+		AND EMP_NO!=#{empNo}
+	</update>
+	
+	<select id="getFileDetails" parameterType="int" resultType="fileDetailVO">
+		SELECT FILE_SN, FILE_GROUP_NO, FILE_ORIGINAL_NM, FILE_SAVE_NM, FILE_SAVE_LOCATE,
+		    FILE_SIZE, FILE_EXT, FILE_MIME, FILE_FANCYSIZE, FILE_SAVE_DATE, FILE_DOWNCOUNT
+		FROM FILE_DETAIL
+		WHERE FILE_GROUP_NO=#{fileGroupNo}
+	</select>
+
+	<!-- 게시글 디테일 -->
+	<select id="detail" parameterType="String" resultType="boardVO">
+		SELECT
+		    BBS_NO,            
+		    BBS_TTL,           
+		    EMP_NO,            
+		    BBS_CN,            
+		    REG_DT,            
+		    INQ_CNT,           
+		    DEL_YN,            
+		    RCRIT_STTUS_CD,    
+		    DELNG_STTUS_CD,    
+		    BBS_CD,            
+		    SUGEST_CLSF_CD,    
+		    FILE_GROUP_NO,
+		    PROCESS_STTUS_CD
+		FROM
+		    BOARD 
+		WHERE BBS_CD='A02-002'
+		AND BBS_NO=#{bbsNo}
+	</select>
+	
+	
+	<!-- 이전글 디테일 -->
+	<select id="prevboardDetail" parameterType="String" resultType="boardVO">
+		SELECT BBS_NO, BBS_TTL, EMP_NO, BBS_CN, REG_DT, INQ_CNT, DEL_YN, 
+				RCRIT_STTUS_CD, DELNG_STTUS_CD, BBS_CD, SUGEST_CLSF_CD, FILE_GROUP_NO, PROCESS_STTUS_CD
+		FROM ( SELECT BBS_NO, BBS_TTL, EMP_NO, BBS_CN, REG_DT, INQ_CNT, DEL_YN, 
+				RCRIT_STTUS_CD, DELNG_STTUS_CD, BBS_CD, SUGEST_CLSF_CD, FILE_GROUP_NO, PROCESS_STTUS_CD
+			  FROM BOARD 
+				WHERE BBS_CD='A02-002' 
+				AND BBS_NO &lt; #{bbsNo} 
+				ORDER BY BBS_NO DESC )
+		WHERE ROWNUM = 1
+	</select>
+	
+	
+	<!--다음글 디테일-->
+	<select id="nextboardDetail" parameterType="String" resultType="boardVO">
+		SELECT BBS_NO, BBS_TTL, EMP_NO, BBS_CN, REG_DT, INQ_CNT, DEL_YN, RCRIT_STTUS_CD, 
+				DELNG_STTUS_CD, BBS_CD, SUGEST_CLSF_CD, FILE_GROUP_NO , PROCESS_STTUS_CD
+		FROM ( SELECT BBS_NO, BBS_TTL, EMP_NO, BBS_CN, REG_DT, INQ_CNT, DEL_YN, RCRIT_STTUS_CD, 
+				DELNG_STTUS_CD, BBS_CD, SUGEST_CLSF_CD, FILE_GROUP_NO , PROCESS_STTUS_CD
+			  FROM BOARD 
+				WHERE BBS_CD='A02-002' 
+				AND BBS_NO &gt; #{bbsNo} 
+				ORDER BY BBS_NO ASC )
+		WHERE ROWNUM = 1 
+	</select>
+
+
+	<!-- 게시글 등록 -->
+	<insert id="insertBoard" parameterType="boardVO">
+		INSERT INTO
+		"TEAM2_202403F"."BOARD" (BBS_NO, BBS_TTL, EMP_NO, BBS_CN, REG_DT, INQ_CNT, BBS_CD, SUGEST_CLSF_CD
+		<if test="fileGroupNo!=null and fileGroupNo!=''">
+		, FILE_GROUP_NO
+		</if>
+		)
+		VALUES ((SELECT 'b' || LPAD(TO_NUMBER(SUBSTR(MAX(BBS_NO), 2)) + 1, 6, '0') AS BBS_NO from BOARD), 
+											#{bbsTtl}, #{empNo}, #{bbsCn},SYSDATE, '0', 'A02-002', #{sugestClsfCd} 
+		<if test="fileGroupNo!=null and fileGroupNo!=''">
+		, #{fileGroupNo}
+		</if>
+		)
+	</insert>
+
+	<!-- 게시글 가져오기 -->
+	<select id="getBbsNo" parameterType="boardVO" resultType="boardVO">
+		SELECT BBS_NO, BBS_TTL, EMP_NO, BBS_CN, REG_DT, INQ_CNT,
+		DEL_YN,
+		RCRIT_STTUS_CD, DELNG_STTUS_CD, BBS_CD, SUGEST_CLSF_CD,
+		FILE_GROUP_NO
+		FROM BOARD
+		WHERE REG_DT = (SELECT MAX(REG_DT) 
+						FROM BOARD
+						WHERE BBS_CD='A02-002'
+						AND EMP_NO=#{empNo})
+		AND ROWNUM = 1			
+	</select>
+
+	<!-- 게시글 삭제 -->
+	<update id="delete" parameterType="String">
+		UPDATE BOARD
+		SET DEL_YN='Y'
+		WHERE BBS_NO=#{bbsNo}
+	</update>
+
+
+	<!-- 게시글 수정 -->
+	<update id="updatePost" parameterType="boardVO">
+		UPDATE BOARD
+		SET
+		BBS_TTL=#{bbsTtl},BBS_CN=#{bbsCn}
+		<if test="fileGroupNo != null and fileGroupNo != ''">
+			  	,FILE_GROUP_NO = #{fileGroupNo}
+		</if>
+		WHERE BBS_NO=#{bbsNo}
+	</update>
+
+
+	<!-- 카테고리별 게시글수 -->
+	<select id="cagGetTotal" parameterType="String" resultType="int">
+		SELECT COUNT(*)
+		FROM BOARD
+		WHERE BBS_CD='A02-002'
+		AND DEL_YN='N'
+		AND SUGEST_CLSF_CD =
+		#{sugestClsfCd}
+	</select>
+
+	<!-- 댓글 등록 -->
+	<insert id="registCommentPost" parameterType="commentVO">
+		insert into BOARD_COMMENT (CMNT_NO, EMP_NO, CMNT_CN, REG_DT, DEL_YN, BBS_NO)
+		values((SELECT 're' ||
+			LPAD(TO_NUMBER(SUBSTR(MAX(CMNT_NO), 3)) + 1, 5, '0')
+			AS BBS_NO from
+			BOARD_COMMENT),#{empNo},#{cmntCn},SYSDATE,'N',#{bbsNo})
+	</insert>
+	
+	<!-- 댓글 목록 -->
+	<select id="listComment" parameterType="commentVO" resultType="commentVO">
+		SELECT A.CMNT_NO, A.REPLY_NO
+		     , (SELECT B.EMP_NM FROM EMPLOYEE B WHERE B.EMP_NO = A.EMP_NO) NM
+		     , A.EMP_NO
+		     , A.CMNT_CN 
+		     , A.REG_DT
+		     , A.DEL_YN
+		     , A.BBS_NO
+		FROM   BOARD_COMMENT A
+		WHERE  A.BBS_NO = #{bbsNo}
+		AND    A.DEL_YN='N'
+        ORDER  BY A.CMNT_NO ASC
+	</select>
+	
+	<!-- 댓글삭제 -->
+	<update id="deleteCommentAjax" parameterType="commentVO">
+		UPDATE BOARD_COMMENT 
+		SET DEL_YN='Y'
+		WHERE CMNT_NO=#{cmntNo}
+	</update>
+	
+	
+	<!-- 댓글 수정 -->
+	<update id="updateCommentAjax" parameterType="commentVO">
+		UPDATE BOARD_COMMENT 
+		SET CMNT_CN=#{cmntCn}
+		WHERE CMNT_NO=#{cmntNo}
+	</update>
+
+	<delete id="deleteImage" parameterType="fileDetailVO">
+	 	DELETE FROM FILE_DETAIL
+		WHERE FILE_SN=#{fileSn} AND FILE_GROUP_NO = #{fileGroupNo}
+	 </delete>
+
+
+	<!-- 처리완료 -->
+	<update id="processSttusCdY" parameterType="String">
+		UPDATE BOARD 
+		SET PROCESS_STTUS_CD='A20-002'
+		WHERE BBS_NO=#{bbsNo}
+	</update>
+</mapper>
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,406 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cmmn.mapper.MyPageMapper">
+	<!-- 내급여명세서리스트 조회하기 -->
+	<select id="getSalaryDocList" parameterType="String" resultType="salaryDetailsDocVO">
+		SELECT DOC_NO, DOC_TTL, DOC_CN, TRGT_EMP_NO, BONUS, MEAL_CT, 
+				TOT_GIVE_AMT, NPN, HLTHINS_IRNCF, EMPLYMINSRNC_IRNCF, IACI_IRNCF, 
+				ECMT, LLX, TOT_DDC_AMT, REAL_RECPT_AMT, HTML_CD, DOC_CD, DRFT_EMP_NO, 
+				OTM_PAY, HOL_PAY, NIT_PAY, FAM_ALWNC, TRGT_DT,
+    			SUBSTR(TRGT_DT, 1, 4) AS TRGT_YEAR,SUBSTR(TRGT_DT, 5, 2) AS TRGT_MONTH 
+		FROM SALARY_DETAILS_DOC
+		WHERE TRGT_EMP_NO =#{empNo}
+		ORDER BY TRGT_DT DESC
+	
+	</select>
+	
+	
+	<!-- 내급여명세서 조회하기 -->
+	<select id="getSalaryDoc" parameterType="String" resultType="salaryDetailsDocVO">
+		SELECT 
+		    S.TRGT_EMP_NO,           
+		    S.BONUS,                
+		    S.MEAL_CT,            
+		    S.TOT_GIVE_AMT,          
+		    S.NPN,                    
+		    S.HLTHINS_IRNCF,          
+		    S.EMPLYMINSRNC_IRNCF,    
+		    S.IACI_IRNCF,             
+		    S.ECMT,                  
+		    S.LLX,                    
+		    S.TOT_DDC_AMT,           
+		    S.REAL_RECPT_AMT,        
+		    S.HTML_CD,               
+		    S.DOC_CD,                 
+		    S.DRFT_EMP_NO,            
+		    S.OTM_PAY,               
+		    S.HOL_PAY,               
+		    S.NIT_PAY,                
+		    S.FAM_ALWNC,            
+		    S.TRGT_DT,               
+		    E.EMP_NO,
+		    E.EMP_NM,                 
+		    E.JBGD_CD,
+		    E.JBTTL_CD,
+		    E.DEPT_CD,
+		    SL.FNST_NM,              
+		    SL.GIVE_ACTNO,            
+		    SL.EMP_ANSLRY,            
+		    SL.EMP_BSLRY             
+		FROM 
+		    SALARY_DETAILS_DOC S
+		JOIN  EMPLOYEE E ON  S.TRGT_EMP_NO = E.EMP_NO
+		JOIN SALARY SL ON  E.EMP_NO = SL.EMP_NO
+		WHERE E.EMP_NO = #{empNo}
+		AND S.TRGT_DT=#{trgtDt}
+	
+	</select>
+	
+	
+	<!-- 내휴가 조회하기 -->
+	<select id="getMyVacation" parameterType="String" resultType="hrVacationVO">
+		SELECT 
+		    VCATN_NO,
+		    EMP_NO,
+		    BSC_VCATN_DAY_CNT,
+		    GRNT_VCATN_DAY_CNT,
+		    USE_VCATN_DAY_CNT,
+		    HOLD_VCATN_DAY_CNT,
+		    FYR_BGNG_YMD,
+		    FYR_END_YMD,
+		    VCATN_CD,
+		    USE_VCATN_DAY,
+		    TRUNC(TO_DATE(FYR_END_YMD, 'YYYYMMDD') - SYSDATE+1) AS DAYS_LEFT
+		FROM 
+		    VACATION    
+		WHERE EMP_NO=#{empNo}
+	</select>
+	
+	
+	<!-- 팀출근 리스트 -->
+	<select id="teamAttendList" parameterType="hashMap" resultType="attendanceVO">
+		SELECT
+		    A.DCLZ_NO,
+		    A.EMP_NO,
+		    A.ATTEND_YMD,
+		    NVL(A.ATTEND_TM,'0') AS ATTEND_TM,
+		    NVL(A.LVFFC_TM, '0') AS LVFFC_TM, 
+		    NVL(A.REST_HR, '1') AS REST_HR, 
+		    NVL(A.WORK_HR, '0') AS WORK_HR,
+		    NVL(A.MEAL_HR, '1') AS MEAL_HR, 
+		    NVL(A.NGTWR_HR, '0') AS NGTWR_HR,
+		    A.EMP_STTUS_CD,
+		    E.JBGD_CD,
+		    E.DEPT_CD,
+		    E.EMP_Nm
+		    
+		FROM
+		    ATTENDANCE A
+		JOIN
+		    EMPLOYEE E ON A.EMP_NO = E.EMP_NO
+		WHERE
+		    A.ATTEND_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD') 
+		    AND E.DEPT_CD = #{deptCd} 
+		    AND E.DEL_YN = 'N' 
+		    AND A.EMP_NO != #{empNo}
+		ORDER BY
+		    E.JBGD_CD DESC
+	</select>
+	
+	
+	<!-- 팀인원 카운트 -->
+	<select id="countTeamEmp" parameterType="hashMap" resultType="int">
+		SELECT 
+		    COUNT(*) AS count_A13_002
+		FROM
+		    ATTENDANCE A
+		JOIN
+		    EMPLOYEE E ON A.EMP_NO = E.EMP_NO
+		WHERE
+		    A.ATTEND_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    AND E.DEPT_CD = #{deptCd}
+		    AND E.DEL_YN = 'N'
+		    AND A.EMP_NO != #{empNo}
+	</select>
+	
+	
+	<!-- 팀내출근인원 카운트 -->
+	<select id="countAttendEmp" parameterType="hashMap" resultType="int">
+		SELECT 
+		    COUNT(*) AS count_A13_002
+		FROM
+		    ATTENDANCE A
+		JOIN
+		    EMPLOYEE E ON A.EMP_NO = E.EMP_NO
+		WHERE
+		    A.ATTEND_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    AND A.EMP_STTUS_CD = 'A13-001'
+		    AND E.DEPT_CD = #{deptCd}
+		    AND E.DEL_YN = 'N'
+		    AND A.EMP_NO != #{empNo}
+	</select>
+	
+	<!-- 팀내 미출근 카운트 -->
+	<select id="countNotAttendEmp" parameterType="hashMap" resultType="int">
+		SELECT 
+		    COUNT(*) AS count_A13_002
+		FROM
+		    ATTENDANCE A
+		JOIN
+		    EMPLOYEE E ON A.EMP_NO = E.EMP_NO
+		WHERE
+		    A.ATTEND_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    AND A.EMP_STTUS_CD = 'A13-002'
+		    AND E.DEPT_CD = #{deptCd}
+		    AND E.DEL_YN = 'N'
+		    AND A.EMP_NO != #{empNo}	
+	</select>
+	
+	
+	<!-- 출장인원 카운트 -->
+	<select id="busiTripEmp" parameterType="hashMap" resultType="int">
+		SELECT 
+		    COUNT(*) AS count_A13_002
+		FROM
+		    ATTENDANCE A
+		JOIN
+		    EMPLOYEE E ON A.EMP_NO = E.EMP_NO
+		WHERE
+		    A.ATTEND_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    AND A.EMP_STTUS_CD = 'A13-003'
+		    AND E.DEPT_CD = #{deptCd}
+		    AND E.DEL_YN = 'N'
+		    AND A.EMP_NO != #{empNo}	
+	</select>
+	
+	<!-- 휴가인원 카운트 -->
+	<select id="vacationEmp" parameterType="hashMap" resultType="int">
+		SELECT 
+		    COUNT(*) AS count_A13_002
+		FROM
+		    ATTENDANCE A
+		JOIN
+		    EMPLOYEE E ON A.EMP_NO = E.EMP_NO
+		WHERE
+		    A.ATTEND_YMD = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    AND A.EMP_STTUS_CD = 'A13-004'
+		    AND E.DEPT_CD = #{deptCd}
+		    AND E.DEL_YN = 'N'
+		    AND A.EMP_NO != #{empNo}	
+	</select>
+	
+	
+	
+	<!-- 휴가서류리스트 -->
+	<select id="vacationDocVOList" parameterType="hashMap" resultType="vacationDocVO">
+	    SELECT T.*
+	    FROM (
+	        SELECT 
+	            ROW_NUMBER() OVER(ORDER BY V.WRT_YMD DESC) RNUM,
+	            A.ATRZ_NO, 
+	            A.ATRZ_STTUS_CD,
+	            V.DOC_NO,
+	            V.VCATN_CD,
+	            V.DOC_TTL,
+	            V.WRT_YMD,
+	            V.VCATN_RSN,
+	            V.USE_VCATN_DAY_CNT,
+	            V.SCHDL_BGNG_YMD,
+	            V.SCHDL_END_YMD,
+	            V.HTML_CD,
+	            V.DOC_CD,
+	            V.DRFT_EMP_NO 
+	        FROM APPROVAL_DOC A
+	        JOIN VACATION_DOC V ON A.DOC_NO = V.DOC_NO
+	        WHERE A.DRFT_EMP_NO = #{empNo}
+	            
+	        <if test="startDate != null and startDate != ''">
+	            AND V.WRT_YMD &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+	        </if>
+	        <if test="endDate != null and endDate != ''">
+	            AND V.WRT_YMD &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+	        </if>
+	    ) T
+	    WHERE T.RNUM BETWEEN (#{currentPage} - 1) * 10 + 1
+	    AND #{currentPage} * 10
+	</select>
+	
+	<!-- 휴가서류토탈 -->
+	<select id="getVacaDoc" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM 
+			    APPROVAL_DOC A
+			JOIN 
+			    VACATION_DOC V 
+			ON 
+			    A.DOC_NO = V.DOC_NO
+			WHERE 
+			    A.DRFT_EMP_NO = #{empNo}
+
+		<if test="startDate != null and startDate != ''">
+			AND V.WRT_YMD &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+		</if>
+		<if test="endDate != null and endDate != ''">
+			AND V.WRT_YMD &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+		</if>
+			ORDER BY V.WRT_YMD DESC
+		
+	</select>
+	
+	<!-- 내 출근 토탈 -->
+	<select id="getAtteTotal" parameterType="hashMap" resultType="int">
+		SELECT COUNT(*)
+		FROM ATTENDANCE
+		WHERE EMP_NO = #{empNo}   
+        <if test="startDate != null and startDate != ''">
+            AND ATTEND_YMD &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND ATTEND_YMD &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+        </if>
+		
+	</select>
+	
+	<!-- 내 출근 리스트 -->
+	<select id="attendList" parameterType="hashMap" resultType="attendanceVO">
+		SELECT T.*
+	    FROM (
+	        SELECT 
+	            ROW_NUMBER() OVER(ORDER BY ATTEND_YMD DESC) RNUM,DCLZ_NO, EMP_NO, 
+				ATTEND_YMD,
+				NVL(ATTEND_TM, '0') AS ATTEND_TM, 
+			    NVL(LVFFC_TM, '0') AS LVFFC_TM, 
+			    NVL(REST_HR, '1') AS REST_HR, 
+			    NVL(WORK_HR, '0') AS WORK_HR, 
+			    NVL(MEAL_HR, '1') AS MEAL_HR, 
+			    NVL(NGTWR_HR, '0') AS NGTWR_HR,  EMP_STTUS_CD
+			from ATTENDANCE
+			WHERE EMP_NO = #{empNo}   
+	        <if test="startDate != null and startDate != ''">
+	            AND ATTEND_YMD &gt;= TO_DATE(#{startDate}, 'YYYY-MM-DD')
+	        </if>
+	        <if test="endDate != null and endDate != ''">
+	            AND ATTEND_YMD &lt;= TO_DATE(#{endDate}, 'YYYY-MM-DD')
+	        </if>
+	    ) T
+	    WHERE T.RNUM BETWEEN (#{currentPage} - 1) * 10 + 1
+	    AND #{currentPage} * 10
+	</select>
+	
+	
+	<!-- 오늘 근무시간 가져오기 -->
+	<select id="getTdWork" parameterType="hashMap" resultType="attendanceVO">
+		select  ATTEND_TM, LVFFC_TM, REST_HR, MEAL_HR, NGTWR_HR
+		from ATTENDANCE
+		WHERE EMP_NO = #{empNo}
+		and ATTEND_YMD=#{attendYmd}
+	</select>
+	
+	<!-- db에서 최신날짜가져오기 -->
+	<select id="getDbattendYmd" parameterType="hashMap" resultType="String">
+		SELECT ATTEND_YMD
+		FROM ATTENDANCE
+		WHERE EMP_NO = #{empNo}
+		AND ATTEND_YMD = (
+		    SELECT MAX(ATTEND_YMD)
+		    FROM ATTENDANCE
+		    WHERE EMP_NO = #{empNo}
+		)
+	</select>
+	
+	
+	<!-- 야근시간 가져오기 -->
+	<select id="getweekNgtwrHr" parameterType="String" resultType="String">
+		SELECT 
+   		 SUM(TO_NUMBER(NGTWR_HR)) NGTWR_HR
+		FROM 
+		    ATTENDANCE
+		WHERE 
+		    EMP_NO = #{empNo}
+		    AND ATTEND_YMD BETWEEN TO_CHAR(TRUNC(SYSDATE, 'DAY') + 1, 'YYYYMMDD') AND TO_CHAR(SYSDATE, 'YYYYMMDD')
+	</select>
+	
+	
+	<!-- 주간 근무시간 구하기 -->
+	<select id="getweekWorkHr" parameterType="String" resultType="String">
+		SELECT 
+		    NVL(TO_CHAR(SUM(TO_NUMBER(WORK_HR))), '0') AS TOTAL_WORK_HR
+		FROM 
+		    ATTENDANCE
+		WHERE 
+		    EMP_NO = '240003'
+		    AND ATTEND_YMD BETWEEN TO_CHAR(TRUNC(SYSDATE, 'DAY') + 1, 'YYYYMMDD') AND TO_CHAR(SYSDATE, 'YYYYMMDD')
+	</select>
+	
+	
+	<!-- 초과근무 등록 -->
+	<update id="setOvreWkTm" parameterType="hashMap">
+		UPDATE ATTENDANCE
+		SET NGTWR_HR = #{ngtwrHr}
+		WHERE EMP_NO = #{empNo}
+		and ATTEND_YMD=#{attendYmd}
+	</update>
+	
+	<!-- 근무시간 등록 -->
+	<update id="setWKTime" parameterType="hashMap">
+		UPDATE ATTENDANCE
+		SET WORK_HR = #{workHr}
+		WHERE EMP_NO = #{empNo}
+		and ATTEND_YMD=#{attendYmd}
+	</update>
+	
+
+	<!-- 내정보 수정 -->
+	<update id="infoUpdate" parameterType="employeeVO">
+		UPDATE EMPLOYEE
+		SET EMP_INTRCN = #{empIntrcn},
+		    EMP_TELNO = #{empTelno},
+		    EMP_EML_ADDR = #{empEmlAddr},
+		    ROAD_NM_ZIP = #{roadNmZip},
+		    ROAD_NM_ADDR = #{roadNmAddr},
+		    DADDR = #{daddr},
+		    PROFL_PHOTO = #{proflPhoto}
+		WHERE EMP_NO = #{empNo}
+	</update>
+	
+	<!-- 프사 수정 -->
+	<update id="upDateFrofl" parameterType="hashMap">
+		UPDATE EMPLOYEE
+		SET PROFL_PHOTO = #{proflPhoto}
+		WHERE EMP_NO = #{empNo}
+	</update>
+	
+	<!-- 새비밀번호  -->
+	<update id="newPswd" parameterType="hashMap">
+		UPDATE EMPLOYEE
+		SET EMP_PSWD = #{empPswd}
+		WHERE EMP_NO = #{empNo}
+	</update>
+
+
+	<!-- 현 비밀번호 가져오기 -->
+	<select id="getpasswd" parameterType="String" resultType="String">
+		SELECT EMP_PSWD
+		FROM EMPLOYEE
+		WHERE EMP_NO= #{empNo}
+	</select>
+
+
+	<!-- 내정보 가져오기 -->
+	<select id="getinfo" parameterType="employeeVO" resultType="employeeVO">
+		SELECT EMP_NO, EMP_PSWD, EMP_NM, EMP_RRNO, EMP_BRDT, EMP_TELNO
+				, EMP_EML_ADDR, JNCMP_YMD, RSGNTN_YMD, ROAD_NM_ZIP, ROAD_NM_ADDR
+				, DADDR, EMP_INTRCN, DEL_YN, JBGD_CD, JBTTL_CD, DEPT_CD, SEXDSTN_CD
+				, ENABLED, PROFL_PHOTO, OFFCS_PHOTO
+		FROM EMPLOYEE
+		WHERE EMP_NO= #{empNo}
+	
+	</select>
+	
+	<!-- 비밀번호 조회 -->
+	<select id="getPasswordByEmpNo" parameterType="String" resultType="String">
+		SELECT EMP_PSWD
+		FROM EMPLOYEE
+		WHERE EMP_NO = #{empNo}
+	</select>
+</mapper>

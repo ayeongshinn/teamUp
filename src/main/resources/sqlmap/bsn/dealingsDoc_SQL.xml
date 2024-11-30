@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 거래처용 SQL :: 이재현 -->
+
+<mapper namespace="kr.or.ddit.bsn.mapper.DealingsDocMapper">
+	
+	<!-- 계약서 -->
+		<resultMap type="dealingsDocVO" id="dealingsDocMap">
+		<result property="htmlCd" column="HTML_CD"/>
+		<result property="atrzSttusCd" column="ATRZ_STTUS_CD"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="docNo" column="DOC_NO"/>
+		<result property="docTtl" column="DOC_TTL"/>
+		<result property="ctrtCn" column="CTRT_CN"/>
+		<result property="wrtYmd" column="WRT_YMD"/>
+		<result property="rbprsnEmpNo" column="RBPRSN_EMP_NO"/>
+		<result property="ctrtAmt" column="CTRT_AMT"/>
+		<result property="cnptNo" column="CNPT_NO"/>
+		<result property="custNo" column="CUST_NO"/>
+		
+		<collection property="fileDetailVOList" resultMap="fileDetailMap"></collection>
+	</resultMap>
+	
+	<!-- 파일 상세 -->
+	<resultMap type="fileDetailVO" id="fileDetailMap">
+		<result property="fileSn" column="FILE_SN"/>
+		<result property="fileGroupNo" column="FILE_GROUP_NO"/>
+		<result property="fileOriginalNm" column="FILE_ORIGINAL_NM"/>
+		<result property="fileSaveNm" column="FILE_SAVE_NM"/>
+		<result property="fileSaveLocate" column="FILE_SAVE_LOCATE"/>
+		<result property="fileSize" column="FILE_SIZE"/>
+		<result property="fileExt" column="FILE_EXT"/>
+		<result property="fileMime" column="FILE_MIME"/>
+		<result property="fileFancysize" column="FILE_FANCYSIZE"/>
+		<result property="fileSaveDate" column="FILE_SAVE_DATE"/>
+		<result property="fileDowncount" column="FILE_DOWNCOUNT"/>
+	</resultMap>
+	
+	<!-- 계약서 리스트 -->
+	<select id="dealingsDocList" parameterType="hashMap" resultType="dealingsDocVO">
+	    WITH t AS (
+	        SELECT ROW_NUMBER() OVER(ORDER BY A.DOC_NO DESC) rnum,
+	               A.DOC_NO, A.DOC_TTL, A.CTRT_CN, A.WRT_YMD, A.RBPRSN_EMP_NO,
+	               A.CTRT_AMT, A.CNPT_NO, A.CUST_NO, A.HTML_CD, A.ATRZ_STTUS_CD,
+	               B.RPRSV_NM, C.CUST_NM, D.EMP_NM, E.CLSF_NM
+	        FROM DEALINGS_DOC A
+	        LEFT JOIN COUNTERPARTY B ON(A.CNPT_NO = B.CNPT_NO)
+	        LEFT JOIN CUSTOMER C ON(A.CUST_NO = C.CUST_NO)
+	        LEFT JOIN EMPLOYEE D ON(A.RBPRSN_EMP_NO = D.EMP_NO)
+	        LEFT JOIN COMMON_CODE E ON(A.ATRZ_STTUS_CD = E.CLSF_CD)
+	        WHERE 1=1
+	        
+	        <!-- 결재 상태(카테고리) 필터 -->
+	        <if test="category != null and category != ''">
+	            AND A.ATRZ_STTUS_CD = #{category}
+	        </if>
+	        <if test="keyword != null and keyword != ''">
+       			AND (CUST_NM LIKE '%' || #{keyword} || '%' OR RPRSV_NM LIKE '%' || #{keyword} || '%')
+    		</if>
+	        <!-- 검색 조건 (고객명 또는 대표명) -->
+	        <if test="gubun != null and gubun != ''">
+	            <choose>
+	                <when test="gubun == 'custNm'">
+	                    AND C.CUST_NM LIKE '%' || #{keyword} || '%'
+	                </when>
+	                <when test="gubun == 'rprsvNm'">
+	                    AND B.RPRSV_NM LIKE '%' || #{keyword} || '%'
+	                </when>
+	            </choose>
+	        </if>
+	
+	        <!-- 검색 조건이 없을 때 기본 검색 (고객명 또는 대표명) -->
+	        <if test="gubun == null or gubun == ''">
+	            AND (
+	                C.CUST_NM LIKE '%' || #{keyword} || '%' 
+	                OR B.RPRSV_NM LIKE '%' || #{keyword} || '%'
+	            )
+	        </if>
+	    )
+	    SELECT * FROM t
+	    WHERE t.rnum BETWEEN (#{currentPage} * 10) - 9 AND (#{currentPage} * 10)
+	</select>
+	
+	<!-- 전체 행의 수 -->
+	<select id="getTotal" resultType="int">
+	    SELECT COUNT(*)
+	    FROM DEALINGS_DOC A
+	    LEFT JOIN COUNTERPARTY B ON(A.CNPT_NO = B.CNPT_NO)
+	    LEFT JOIN CUSTOMER C ON(A.CUST_NO = C.CUST_NO)
+	    LEFT JOIN EMPLOYEE D ON(A.RBPRSN_EMP_NO = D.EMP_NO)
+	    LEFT JOIN COMMON_CODE E ON(A.ATRZ_STTUS_CD = E.CLSF_CD)
+	    WHERE 1=1
+	    
+	    <!-- 결재 상태(카테고리) 필터 -->
+	    <if test="category != null and category != ''">
+		    AND A.ATRZ_STTUS_CD = #{category}
+		</if>
+
+	    
+	    <!-- 검색 조건 -->
+	    <if test="gubun != null and gubun != ''">
+	        <choose>
+	            <when test="gubun == 'custNm'">
+	                AND C.CUST_NM LIKE '%' || #{keyword} || '%'
+	            </when>
+	            <when test="gubun == 'rprsvNm'">
+	                AND B.RPRSV_NM LIKE '%' || #{keyword} || '%'
+	            </when>
+	        </choose>
+	    </if>
+	
+	    <!-- 검색 조건이 없을 때 기본 검색 (고객명 또는 대표명) -->
+	    <if test="gubun == null or gubun == ''">
+	        AND (
+	            C.CUST_NM LIKE '%' || #{keyword} || '%' 
+	            OR B.RPRSV_NM LIKE '%' || #{keyword} || '%'
+	        )
+	    </if>
+	</select>
+	
+	<!-- 카테고리 처리 -->
+	<select id="getCategories" resultType="hashMap">
+	    SELECT DISTINCT E.CLSF_CD AS category, E.CLSF_NM AS categoryName
+	    FROM COMMON_CODE E
+	    WHERE E.CLSF_CD IN ('A14-001', 'A14-002', 'A14-003')
+	    ORDER BY E.CLSF_CD
+	</select>
+	
+	<!-- 승인 건수 -->
+	<select id="getPass" resultType="int">
+		SELECT COUNT(*) AS pass_count
+		FROM DEALINGS_DOC
+		WHERE ATRZ_STTUS_CD = 'A14-001'
+	</select>
+	
+	<!-- 반려 건수 -->
+	<select id="getReturn" resultType="int">
+		SELECT COUNT(*) AS return_count
+		FROM DEALINGS_DOC
+		WHERE ATRZ_STTUS_CD = 'A14-002'
+	</select>
+	
+	<!-- 대기 건수 -->
+	<select id="getHold" resultType="int">
+		SELECT COUNT(*) AS return_count
+		FROM DEALINGS_DOC
+		WHERE ATRZ_STTUS_CD = 'A14-003'
+	</select>
+	
+	<!-- 당월 요청 건수 -->
+	<select id="getCurrent" resultType="int">
+		SELECT COUNT(*) AS current_month_request_count
+		FROM DEALINGS_DOC
+		WHERE ATRZ_STTUS_CD IN ('A14-001', 'A14-002', 'A14-003')
+	  	AND TO_CHAR(SYSDATE, 'YYYYMM') = SUBSTR(TRIM(WRT_YMD), 1, 6)
+	</select>
+	
+	<!-- 계약서 상세 조회 -->
+	<select id="dealingsDocDetail" parameterType="String" resultType="dealingsDocVO">
+		SELECT A.DOC_NO, A.DOC_TTL, A.CTRT_CN, A.WRT_YMD, A.RBPRSN_EMP_NO,
+	           A.CTRT_AMT, A.CNPT_NO, A.CUST_NO, A.HTML_CD, A.ATRZ_STTUS_CD,
+	           B.RPRSV_NM, C.CUST_NM, D.EMP_NM, E.CLSF_NM
+		FROM DEALINGS_DOC A
+		LEFT JOIN COUNTERPARTY B ON(A.CNPT_NO = B.CNPT_NO)
+		LEFT JOIN CUSTOMER C ON(A.CUST_NO = C.CUST_NO)
+		LEFT JOIN EMPLOYEE D ON(A.RBPRSN_EMP_NO = D.EMP_NO)
+		LEFT JOIN COMMON_CODE E ON(A.ATRZ_STTUS_CD = E.CLSF_CD)
+		WHERE DOC_NO = #{docNo}
+	</select>
+	
+	<!-- 계약서 등록 실행 -->
+	<insert id="dealRegistPost" parameterType="dealingsDocVO">
+	    <selectKey resultType="String" order="BEFORE" keyProperty="docNo">
+	        SELECT DOC_NO() FROM DUAL
+	    </selectKey>
+	    INSERT INTO DEALINGS_DOC (
+	    	DOC_NO, DOC_TTL, CTRT_CN, WRT_YMD, RBPRSN_EMP_NO,
+			 CTRT_AMT, ATRZ_STTUS_CD
+		<if test="custNo != null and custNo != ''">
+            , CUST_NO
+        </if>
+        <if test="cnptNo != null and cnptNo != ''">
+            , CNPT_NO
+        </if>
+		<if test="htmlCd != null and htmlCd != ''">
+			, HTML_CD
+		</if>			  
+		<if test="fileGroupNo!=null and fileGroupNo!=''">						  
+			, FILE_GROUP_NO
+		</if>
+		)
+		
+		VALUES (
+			(
+	            SELECT 'DEAL' || LPAD(NVL(MAX(SUBSTR(DOC_NO, 5)), 0) + 1, 6, '0')
+	            FROM DEALINGS_DOC
+        	)
+			, #{docTtl}, #{ctrtCn}, #{wrtYmd},
+			#{rbprsnEmpNo}, #{ctrtAmt}, 'A14-003'
+		<if test="htmlCd != null and htmlCd != ''">
+			, #{htmlCd}
+		</if>
+		<if test="fileGroupNo!=null and fileGroupNo!=''">
+			, #{fileGroupNo}
+		</if>
+		<if test="custNo != null and custNo != ''">
+            , #{custNo}
+        </if>
+        <if test="cnptNo != null and cnptNo != ''">
+            , #{cnptNo}
+        </if>
+		)
+	</insert>
+	
+	<!-- 업종명 리스트 -->
+	<select id="indutynmList" resultType="dealingsDocVO">
+		SELECT CLSF_NM INDUTY_NM, CLSF_CD INDUTY_CD FROM COMMON_CODE
+		WHERE GROUP_CD = 'A12'
+	</select>
+	
+	<!-- 결제 요청 리스트 -->
+	<select id="requestList" resultType="dealingsDocVO">
+		SELECT A.DOC_NO, A.DOC_TTL, A.CTRT_CN, A.WRT_YMD, A.RBPRSN_EMP_NO,
+	           A.CTRT_AMT, A.CNPT_NO, A.CUST_NO, A.HTML_CD, A.ATRZ_STTUS_CD,
+	           B.RPRSV_NM, C.CUST_NM, D.EMP_NM, E.CLSF_NM
+		FROM DEALINGS_DOC A
+		LEFT JOIN COUNTERPARTY B ON(A.CNPT_NO = B.CNPT_NO)
+		LEFT JOIN CUSTOMER C ON(A.CUST_NO = C.CUST_NO)
+		LEFT JOIN EMPLOYEE D ON(A.RBPRSN_EMP_NO = D.EMP_NO)
+		LEFT JOIN COMMON_CODE E ON(A.ATRZ_STTUS_CD = E.CLSF_CD)
+		WHERE ATRZ_STTUS_CD = 'A14-003'
+	</select>
+	
+	<!-- 당월 승인 건수 -->
+	<select id="getCurrentPass" resultType="int">
+		SELECT COUNT(*) AS current_month_pass_count
+		FROM DEALINGS_DOC
+		WHERE ATRZ_STTUS_CD = 'A14-001'
+		AND TO_CHAR(SYSDATE, 'YYYYMM') = SUBSTR(TRIM(WRT_YMD), 1, 6)
+	</select>
+	
+	<!-- 당월 반려 건수 -->
+	<select id="getCurrentHold" resultType="int">
+		SELECT COUNT(*) AS current_month_pass_count
+		FROM DEALINGS_DOC
+		WHERE ATRZ_STTUS_CD = 'A14-002'
+		AND TO_CHAR(SYSDATE, 'YYYYMM') = SUBSTR(TRIM(WRT_YMD), 1, 6)
+	</select>
+	
+	<!-- 결재 상태 업데이트 -->
+	<update id="updateApprovalStatus" parameterType="dealingsDocVO">
+	    UPDATE DEALINGS_DOC
+	    SET ATRZ_STTUS_CD = #{atrzSttusCd}
+	    WHERE DOC_NO = #{docNo}
+	</update>
+	
+	<!-- 거래처 insert -->
+	<insert id="insertCounterParty" parameterType="dealingsDocVO">
+	    INSERT INTO COUNTERPARTY (
+	        CNPT_NO, CMRC_NM, RPRSV_NM, CNPT_BRNO, FNDN_YMD, RPRS_TELNO, 
+	        CNPT_FXNO, CO_ROAD_NM_ZIP, CO_ROAD_NM_ADDR, CO_DADDR, RMRK_CN, 
+	        CTRT_CNCLS_YMD, ATRZ_STTUS_CD, INDUTY_CD
+	    ) VALUES (
+	        (
+	            SELECT 'COUNTE' || LPAD(NVL(MAX(SUBSTR(CNPT_NO, 7)), 0) + 1, 4, '0')
+	            FROM COUNTERPARTY
+        	)
+	        , #{cmrcNm}, #{rprsvNm}, #{cnptBrno}, #{fndnYmd}, #{rprsTelno}, 
+	        #{cnptFxno}, #{coRoadNmZip}, #{coRoadNmAddr}, #{coDaddr}, #{rmrkCn}, 
+	        #{counterCtrtCnclsYmd}, 'A14-003', #{indutyCd}
+	    )
+	</insert>
+
+	
+	<!-- 고객 insert -->
+	<insert id="insertCustomer" parameterType="dealingsDocVO">
+    INSERT INTO CUSTOMER (
+        CUST_NO, CUST_NM, CUST_CR_NM, CUST_RRNO, CUST_TELNO, CUST_EML_ADDR, 
+        CUST_ROADNM_ZIP, CUST_ROADNM_ADDR, CUST_DADDR, RMRK_CN,
+        CTRT_CNCLS_YMD, ATRZ_STTUS_CD
+    ) VALUES (
+        (
+	        SELECT 'CUSTM' || LPAD(NVL(MAX(SUBSTR(CUST_NO, 6)), 0) + 1, 5, '0')
+	        FROM CUSTOMER
+       	)
+        , #{custNm}, #{custCrNm}, #{custRrno}, #{custTelno}, #{custEmlAddr}, 
+        #{custRoadNmZip}, #{custRoadNmAddr}, #{custDaddr}, #{rmrkCn}, 
+        #{custCtrtCnclsYmd}, 'A14-003'
+    )
+	</insert>
+
+</mapper>

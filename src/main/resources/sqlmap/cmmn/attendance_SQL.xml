@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cmmn.mapper.AttendanceMapper">
+	
+	<!-- 근태VO -->
+	<resultMap type="attendanceVO" id="attendanceMap">
+		<result property="dclzNo" column="DCLZ_NO"/> <!-- 근태번호 -->
+		<result property="empNo" column="EMP_NO"/> <!-- 사원번호 -->
+		<result property="attendYmd" column="ATTEND_YMD"/> <!-- 출근일자 -->
+		<result property="attendTm" column="ATTEND_TM"/> <!-- 출근시각 -->
+		<result property="lvffcTm" column="LVFFC_TM"/> <!-- 퇴근시각 -->
+		<result property="restHr" column="REST_HR"/> <!-- 휴게시간 -->
+		<result property="workHr" column="WORK_HR"/> <!-- 근무시간 -->
+		<result property="mealHr" column="MEAL_HR"/> <!-- 식사시간 -->
+		<result property="ngtwrHr" column="NGTWR_HR"/> <!-- 야근시간 -->
+		<result property="empSttusCd" column="EMP_STTUS_CD"/> <!-- 사원상태코드_A13 -->
+	</resultMap>
+	
+	<!-- 큐알 스캔 후 출근 update :: 신아영 -->
+	<update id="updateAttendAjax" parameterType="attendanceVO">
+		UPDATE ATTENDANCE
+		SET ATTEND_TM = #{attendTm}, EMP_STTUS_CD = 'A13-001'
+		WHERE EMP_NO = #{empNo} AND ATTEND_YMD = #{attendYmd}
+	</update>
+	
+	<!-- 버튼 클릭 후 출근 update :: 신아영 -->
+	<update id="updateAttendBtnAjax" parameterType="attendanceVO">
+		UPDATE ATTENDANCE
+		SET ATTEND_TM = #{attendTm}, EMP_STTUS_CD = 'A13-001'
+		WHERE EMP_NO = #{empNo} AND ATTEND_YMD = #{attendYmd}
+	</update>
+	
+	<!-- 큐알 스캔 후 퇴근 update :: 신아영 -->
+	<update id="updateLvffcAjax" parameterType="attendanceVO">
+		UPDATE ATTENDANCE
+		SET LVFFC_TM = #{lvffcTm}, EMP_STTUS_CD = 'A13-005'
+		WHERE EMP_NO = #{empNo} AND ATTEND_YMD = #{attendYmd}
+	</update>
+	
+	<select id="selectEmpNoByUsername" parameterType="String" resultType="String">
+	    SELECT EMP_NO
+	    FROM EMPLOYEE
+	    WHERE EMP_NO = #{empNo}
+	</select>
+	
+	<!-- 특정 부서 사원 리스트 -->
+	<select id="list" parameterType="hashMap" resultType="attendanceVO">
+		WITH T AS
+		(	
+			SELECT ROW_NUMBER() OVER(ORDER BY E.EMP_NM) RNUM
+			     , A.DCLZ_NO, E.EMP_NO, A.ATTEND_YMD, A.ATTEND_TM
+			     , A.LVFFC_TM, A.REST_HR, A.WORK_HR, A.MEAL_HR, A.NGTWR_HR, A.EMP_STTUS_CD
+			     , E.EMP_NM, E.DEPT_CD, E.JBGD_CD, C.CLSF_NM AS EMP_STTUS_NM
+			     , (SELECT CLSF_NM FROM COMMON_CODE WHERE CLSF_CD=E.JBGD_CD) JBGD_NM
+			FROM   EMPLOYEE E LEFT OUTER JOIN ATTENDANCE A ON E.EMP_NO=A.EMP_NO
+			                  LEFT OUTER JOIN COMMON_CODE C ON A.EMP_STTUS_CD=C.CLSF_CD
+			WHERE  E.DEL_YN = 'N'
+			AND    E.DEPT_CD = #{deptCd}
+			<if test="attendYmd != null and attendYmd != ''">
+				AND    A.ATTEND_YMD = #{attendYmd}
+			</if>
+		    <if test="keyword != null and keyword != ''">
+		        AND E.EMP_NM LIKE '%' || #{keyword} || '%'
+		    </if>
+		)
+		SELECT * FROM T                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+		WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+	
+	<!-- 근태 사원 수 조회 :: 장영원 -->
+	<select id="deptTotal" resultType="int" parameterType="String">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE
+		WHERE  DEL_YN = 'N'
+		AND    DEPT_CD = #{deptCd}
+	</select>
+	
+	<!-- 미출근 사원 수 :: 장영원 -->
+	<select id="absentCnt" resultType="int" parameterType="hashMap">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE E LEFT OUTER JOIN ATTENDANCE A ON E.EMP_NO=A.EMP_NO
+		                  LEFT OUTER JOIN COMMON_CODE C ON A.EMP_STTUS_CD=C.CLSF_CD
+		WHERE  E.DEL_YN = 'N'
+		AND    E.DEPT_CD = #{deptCd}
+		AND    A.ATTEND_YMD = #{attendYmd}
+		AND    A.EMP_STTUS_CD IN ('A13-002', 'A13-004')
+	</select>
+	
+	<!-- 특정 부서 사원 수 :: 장영원 -->
+	<select id="getTotal" resultType="int" parameterType="hashMap">
+		SELECT COUNT(*)
+		FROM   EMPLOYEE
+		WHERE  DEL_YN = 'N'
+		AND    DEPT_CD = #{deptCd}
+		<if test="keyword != null and keyword != ''">
+	        AND EMP_NM LIKE '%' || #{keyword} || '%'
+	    </if>
+	</select>
+	
+	<!-- 로그인한 특정 사원의 정보 :: 장영원 -->
+	<select id="getEmployee" parameterType="String" resultType="employeeVO">
+		SELECT EMP_NO, EMP_NM, EMP_EML_ADDR, EMP_INTRCN, PROFL_PHOTO, OFFCS_PHOTO
+			 , JBGD_CD, JBTTL_CD, DEPT_CD, SEXDSTN_CD
+		FROM   EMPLOYEE
+		WHERE  EMP_NO = #{empNo}
+	</select>
+	
+</mapper>

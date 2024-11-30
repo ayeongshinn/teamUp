@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC 
+"-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" 
+"http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<!-- tiles 설정 -->
+<tiles-definitions>
+    <!-- 메인 레이아웃 정의 -->
+    <definition name="tiles-layout" template="/WEB-INF/views/tiles/index.jsp">
+        <put-attribute name="header" value="/WEB-INF/views/tiles/header.jsp" />
+        <put-attribute name="aside" value="/WEB-INF/views/tiles/aside.jsp" />
+        <put-attribute name="body" value="" />
+        <put-attribute name="footer" value="/WEB-INF/views/tiles/footer.jsp" />
+    </definition>
+
+    <!-- 단일 경로 패턴 매핑 (예: "home") -->
+    <definition name="*" extends="tiles-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}.jsp" />
+    </definition>
+    
+    <!-- 2단계 경로 패턴 매핑 (예: "folder/file") -->
+    <definition name="*/*" extends="tiles-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}/{2}.jsp" />
+    </definition>
+
+    <!-- 3단계 경로 패턴 매핑 (예: "folder/subfolder/file") -->
+    <definition name="*/*/*" extends="tiles-layout">
+        <put-attribute name="body" value="/WEB-INF/views/{1}/{2}/{3}.jsp" />
+    </definition>
+
+    <!-- 레이아웃을 적용하지 않는 빈 템플릿 정의 -->
+    <definition name="empty" template="/WEB-INF/views/empty.jsp">
+        <put-attribute name="body" value="" />
+    </definition>
+    
+<!--     레이아웃을 적용하지 않는 definition - popup편 장영원이 만듬 -∇- vV -->
+    <definition name="popup" template="/WEB-INF/views/popup.jsp">
+        <put-attribute name="body" value="" />
+    </definition>
+    
+    <!-- 로그인 창 -->
+    <definition name="emptyLogin" template="/WEB-INF/views/emptyLogin.jsp">
+    	<put-attribute name="body" value=""/>
+    </definition>
+
+<!--     login 페이지를 위한 특별한 매핑 -->
+    <definition name="cmmn/loginForm" extends="emptyLogin">
+        <put-attribute name="body" value="/WEB-INF/views/cmmn/loginForm.jsp" />
+    </definition>
+    
+    <definition name="cmmn/findPswd" extends="emptyLogin">
+        <put-attribute name="body" value="/WEB-INF/views/cmmn/findPswd.jsp" />
+    </definition>
+    
+   <definition name="cmmn/updatePswd" extends="emptyLogin">
+        <put-attribute name="body" value="/WEB-INF/views/cmmn/updatePswd.jsp" />
+    </definition>
+    
+   <definition name="cmmn/videoConference/videoRegist" extends="popup">
+        <put-attribute name="body" value="/WEB-INF/views/cmmn/videoConference/videoRegist.jsp" />
+    </definition>
+    
+   <definition name="hr/employee/empRegistForm" extends="popup">
+        <put-attribute name="body" value="/WEB-INF/views/hr/employee/empRegistForm.jsp" />
+    </definition>
+    
+   <definition name="hr/employee/regist" extends="popup">
+        <put-attribute name="body" value="/WEB-INF/views/hr/employee/regist.jsp" />
+    </definition>
+    
+    <definition name="hr/salary/docPopUp" extends="popup">
+        <put-attribute name="body" value="/WEB-INF/views/hr/salary/docPopUp.jsp" />
+    </definition>
+    
+    <!-- 회의실 예약 리스트 페이지를 위한 특별한 매핑 -->
+	<definition name="cmmn/meetingRoom/detail" extends="empty">
+        <put-attribute name="body" value="/WEB-INF/views/cmmn/meetingRoom/detail.jsp" />
+    </definition>
+	<!-- 회의실 예약 리스트 페이지를 위한 특별한 매핑 끝 -->
+    
+
+<!-- header + aside + footer + bg.white :: 캘린더-->
+	<definition name="bgWhite" template="/WEB-INF/views/bgWhite.jsp">
+		<put-attribute name="header" value="/WEB-INF/views/tiles/header.jsp" />
+		<put-attribute name="aside" value="/WEB-INF/views/tiles/aside.jsp" />
+		<put-attribute name="body" value="" />
+		<put-attribute name="footer" value="/WEB-INF/views/tiles/footer.jsp" />
+	</definition>
+	
+	<definition name="planng/calendarList" extends="bgWhite">
+		<put-attribute name="body" value="/WEB-INF/views/planng/calendarList.jsp"/>
+	</definition>
+	
+	<!-- 중고 거래 게시판 배경 -->
+	<definition name="cmmn/usedGoods/detailGoods" extends="bgWhite">
+		<put-attribute name="body" value="/WEB-INF/views/cmmn/usedGoods/detailGoods.jsp"/>
+	</definition>	
+	
+	<!-- bg.gray :: 설문 등록 폼-->
+	<definition name="bgGray" template="/WEB-INF/views/bgGray.jsp">
+		<put-attribute name="body" value=""/>
+	</definition>
+	
+	<definition name="planng/surveyForm" extends="bgGray">
+		<put-attribute name="body" value="/WEB-INF/views/planng/surveyForm.jsp"/>
+	</definition>
+	
+	<!-- bg.grayResult :: 설문 결과 -->
+	<definition name="bgGrayResult" template="/WEB-INF/views/bgGrayResult.jsp">
+		<put-attribute name="body" value=""/>
+	</definition>
+	
+	<definition name="planng/surveyResult" extends="bgGrayResult">
+		<put-attribute name="body" value="/WEB-INF/views/planng/surveyResult.jsp"/>
+	</definition>
+	
+	
+	
+	
+<!-- 메일 보내기 popup-->
+	<definition name="cmmn/mail/send" extends="popup">
+		<put-attribute name="body" value="/WEB-INF/views/cmmn/mail/send.jsp"/>
+	</definition>
+	
+	<!-- 급여명세서 popup-->
+	<definition name="cmmn/myPage/salsryDoc" extends="popup">
+		<put-attribute name="body" value="/WEB-INF/views/cmmn/myPage/salsryDoc.jsp"/>
+	</definition>
+
+
+    <!--  ///////////   mail 페이지를 위한 특별한 매핑 시작 /////////// -->    
+<!--     <definition name="mails-layout" template="/WEB-INF/views/tilesMail/index.jsp"> -->
+<!-- 		<put-attribute name="header" value="/WEB-INF/views/tilesMail/header.jsp" /> -->
+<!-- 		<put-attribute name="aside" value="/WEB-INF/views/tilesMail/mailAside.jsp" /> -->
+<!-- 		<put-attribute name="body" value="" /> -->
+<!-- 		<put-attribute name="footer" value="/WEB-INF/views/tilesMail/footer.jsp" /> -->
+<!-- 	</definition> -->
+<!-- 	return "cmmn/mail/crud/list"  -->
+<!-- 	<definition name="cmmn/mail/crud/*" extends="mails-layout"> -->
+<!-- 	    <put-attribute name="body" value="/WEB-INF/views/cmmn/mail/crud/{1}.jsp" /> -->
+<!-- 	</definition> -->
+	<!--  ///////////   mail 페이지를 위한 특별한 매핑 끝 /////////// -->   
+
+	<definition name="tiles-layout-no-footer" template="/WEB-INF/views/tiles/index.jsp">
+	    <put-attribute name="header" value="/WEB-INF/views/tiles/header.jsp" />
+	    <put-attribute name="aside" value="/WEB-INF/views/tiles/aside.jsp" />
+	    <put-attribute name="body" value="" />
+	    <!-- footer attribute is removed -->
+	</definition>
+	
+	<definition name="approval/approvalRegist" extends="tiles-layout-no-footer">
+    	<put-attribute name="body" value="/WEB-INF/views/approval/approvalRegist.jsp" />
+	</definition>
+</tiles-definitions>
+
+
+
+
+
+

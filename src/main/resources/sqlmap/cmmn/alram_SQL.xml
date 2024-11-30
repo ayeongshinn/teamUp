@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cmmn.mapper.AlramMapper">
+	
+	<!-- 알람 추가 -->
+    <insert id="insertAlram" parameterType="AlramVO">
+    	<selectKey resultType="String" order="BEFORE" keyProperty="ntcnNo">
+    		SELECT 'NT' || LPAD(NVL(MAX(TO_NUMBER(SUBSTR(NTCN_NO, 3))), 0) + 1, 5, '0')
+	        FROM NOTIFICATION
+    	</selectKey>
+    
+        INSERT INTO NOTIFICATION (NTCN_NO, TOID, FROMID, TEXT, CATEGORI, URL, ICON, NO_CHECK) 
+	    VALUES (
+	        #{ntcnNo},
+	        #{toid}, #{fromid}, #{text}, #{categori}, #{url}, #{icon}, 'N'
+	    )
+    </insert>
+    
+	<!-- 알람 리스트 -->
+    <select id="alramList" resultType="AlramVO">
+	    <![CDATA[
+	    SELECT * 
+		FROM (
+			    SELECT * 
+			    FROM NOTIFICATION 
+			    WHERE (FROMID = #{empNo}  OR TOID = 'ALL')
+			      AND NO_CHECK = 'N'
+			    ORDER BY NTCN_NO DESC
+				) 
+		WHERE rownum <= 6
+	    ]]>
+	</select>
+	
+	<!-- 알림 읽음 상태 업데이트 -->
+	<update id="alramClick" parameterType="String">
+		UPDATE NOTIFICATION
+		SET NO_CHECK = 'Y'
+    	WHERE NTCN_NO = #{ntcnNo}
+	</update>
+	
+	
+    
+    <!-- 알람 전체 알림 개수 카운드 -->
+    <select id="alramCount" resultType="int">
+        SELECT count(*) FROM NOTIFICATION WHERE FROMID = #{empNo}
+    </select>
+
+	
+</mapper>

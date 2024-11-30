@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 고객용 SQL :: 이재현 -->
+
+<mapper namespace="kr.or.ddit.bsn.mapper.CustomerMapper">
+	
+	<!-- 고객 주소록 -->
+	<select id="customerList" parameterType="hashMap" resultType="customerVO">
+		WITH T AS
+		(
+			SELECT ROW_NUMBER() OVER(ORDER BY CUST_NO DESC) RNUM,
+				   CUST_NO, CUST_NM, CUST_RRNO, CUST_CR_NM, CUST_TELNO,
+			       CUST_EML_ADDR, CTRT_CNCLS_YMD, CUST_ROAD_NM_ZIP, RMRK_CN,
+			       CUST_ROAD_NM_ADDR, CUST_DADDR, DEL_YN, ATRZ_STTUS_CD
+			FROM CUSTOMER
+			WHERE ATRZ_STTUS_CD = 'A14-001'
+			<if test="category!=null and category!=''">
+				<choose>
+					<when test="category=='custNm'">
+						AND CUST_NM LIKE '%' || #{keyword} || '%'
+					</when>
+					<when test="category=='rmrkCn'">
+						AND RMRK_CN LIKE '%' || #{keyword} || '%'
+					</when>
+				</choose>
+			</if>
+			<if test="category==null or category==''">
+				AND (
+				TO_CHAR(CUST_NM) LIKE '%' || #{keyword} || '%'
+				OR
+				TO_CHAR(RMRK_CN) LIKE '%' || #{keyword} || '%'
+				)
+			</if>
+		)
+		SELECT *
+		FROM T
+		WHERE T.RNUM BETWEEN (#{currentPage} * 10) - (10 - 1) AND (#{currentPage} * 10)
+	</select>
+	
+	<!-- 전체 행의 수 -->
+	<select id="getTotal" resultType="int">
+		SELECT COUNT (*)
+		FROM CUSTOMER
+	</select>
+	
+	<!-- 고객 등록 실행 -->
+	<insert id="registPost" parameterType="customerVO">
+		INSERT INTO CUSTOMER (CUST_NO, CUST_NM, CUST_RRNO, CUST_CR_NM, CUST_TELNO,
+							  CUST_EML_ADDR, CTRT_CNCLS_YMD, CUST_ROAD_NM_ZIP,
+							  RMRK_CN, CUST_ROAD_NM_ADDR, CUST_DADDR, ATRZ_STTUS_CD)
+		VALUES(CUST_NO(), #{custNm}, #{custRrno}, #{custCrNm}, #{custTelno},
+			   #{custEmlAddr},#{ctrtCnclsYmd}, #{custRoadNmZip},
+			   #{rmrkCn}, #{custRoadNmAddr}, #{custDaddr}, 'A14-003')
+	</insert>
+	
+	<!-- 고객 상세조회 -->
+	<select id="detail" parameterType="String" resultType="customerVO">
+		SELECT CUST_NO, CUST_NM, CUST_RRNO, CUST_CR_NM, CUST_TELNO,
+			   CUST_EML_ADDR, CTRT_CNCLS_YMD, CUST_ROAD_NM_ZIP,
+			   RMRK_CN, CUST_ROAD_NM_ADDR, CUST_DADDR, ATRZ_STTUS_CD
+		FROM CUSTOMER
+		WHERE CUST_NO = #{custNo}
+	</select>
+	
+	<!-- 고객 수정 실행 -->
+	<update id="updatePost" parameterType="customerVO">
+		UPDATE CUSTOMER
+		SET CUST_NM = #{custNm}, CUST_CR_NM = #{custCrNm}, CUST_TELNO = #{custTelno},
+		    CUST_EML_ADDR = #{custEmlAddr}, CUST_ROAD_NM_ZIP =  #{custRoadNmZip},
+		    RMRK_CN = #{rmrkCn}, CUST_ROAD_NM_ADDR = #{custRoadNmAddr},
+		    CUST_DADDR = #{custDaddr}
+		WHERE CUST_NO = #{custNo}
+	</update>
+	
+	<!-- 거래처 삭제 실행 -->
+	<delete id="deletePost" parameterType="customerVO">
+		DELETE FROM CUSTOMER
+		WHERE CUST_NO = #{custNo}
+	</delete>
+	
+	<!-- 전체 계약 건수 -->
+	<select id="ctrtTotal" resultType="int">
+		SELECT COUNT (*)
+		FROM CUSTOMER
+	</select>
+	
+	<!-- 당월 계약 수 -->
+	<select id="ctrtMonth" resultType="int">
+		SELECT COUNT(*) AS contract_count
+		FROM CUSTOMER
+		WHERE TO_DATE(CTRT_CNCLS_YMD, 'YYYYMMDD')
+			  BETWEEN TRUNC(SYSDATE, 'MM')
+			  AND LAST_DAY(SYSDATE)
+	</select>
+	
+	<!-- 전월 계약 수 -->
+	<select id="ctrtBeforeMonth" resultType="int">
+		SELECT COUNT(*) AS previous_month
+		FROM CUSTOMER
+		WHERE TO_DATE(CTRT_CNCLS_YMD, 'YYYYMMDD') 
+		      BETWEEN TRUNC(ADD_MONTHS(SYSDATE, -1), 'MM') 
+		      AND LAST_DAY(ADD_MONTHS(SYSDATE, -1))
+	</select>
+	
+</mapper>
